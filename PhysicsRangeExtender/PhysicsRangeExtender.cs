@@ -66,13 +66,12 @@ namespace PhysicsRangeExtender
 
         private void OnDestroy()
         {
-            if (!PreSettings.ConfigLoaded) return;
-            if (!PreSettings.ModEnabled) return;
+            // No ModEnabled check: the mod can be toggled after Start() subscribed.
             GameEvents.onVesselCreate.Remove(ApplyPhysRange);
             GameEvents.onVesselLoaded.Remove(ApplyPhysRangeOnLoad);
             GameEvents.onVesselSwitching.Remove(ApplyPhysRange);
             GameEvents.onVesselGoOffRails.Remove(ApplyPhysRange);
-            GameEvents.onVesselSituationChange.Add(SituationChangeFixes);
+            GameEvents.onVesselSituationChange.Remove(SituationChangeFixes);
         }
 
 
