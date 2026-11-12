@@ -9,6 +9,14 @@ namespace PhysicsRangeExtender
         public static string SettingsConfigUrl = "GameData/PhysicsRangeExtender/settings.cfg";
         public static int GlobalRange { get; set; }
 
+        /// <summary>
+        ///     Distance in km within which landed, splashed and pre-launch vessels run physics. They still
+        ///     load within <see cref="GlobalRange" />, packed.
+        /// </summary>
+        public static float LandedPhysicsRange { get; set; } = DefaultLandedPhysicsRange;
+
+        public const float DefaultLandedPhysicsRange = 5f;
+
         public static float CamFixMultiplier { get; set; }
 
         public static bool ConfigLoaded { get; set; } = false;
@@ -45,6 +53,10 @@ namespace PhysicsRangeExtender
                 settings.TryGetValue("CamFixMultiplier", ref camFixMultiplier);
                 CamFixMultiplier = camFixMultiplier;
 
+                var landedPhysicsRange = DefaultLandedPhysicsRange;
+                settings.TryGetValue("LandedPhysicsRange", ref landedPhysicsRange);
+                LandedPhysicsRange = landedPhysicsRange;
+
                 GlobalRange = int.Parse(settings.GetValue("GlobalRange"));
                 ModEnabled = bool.Parse(settings.GetValue("ModEnabled"));
                 TerrainExtenderEnabled = bool.Parse(settings.GetValue("TerrainExtenderEnabled"));
@@ -68,6 +80,7 @@ namespace PhysicsRangeExtender
                 settings.SetValue("CamFixMultiplier", CamFixMultiplier);
                 settings.SetValue("ModEnabled", ModEnabled);
                 settings.SetValue("TerrainExtenderEnabled", TerrainExtenderEnabled);
+                settings.SetValue("LandedPhysicsRange", LandedPhysicsRange, true);
                 settings.SetValue("DebugLog", DebugLog, true);
                 fileNode.Save(SettingsConfigUrl);
             }

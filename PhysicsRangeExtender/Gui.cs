@@ -134,7 +134,7 @@ namespace PhysicsRangeExtender
             }
 
             PreSettings.SaveConfig();
-            PhysicsRangeExtender.UpdateRanges(true);
+            if (PhysicsRangeExtender.Instance != null) PhysicsRangeExtender.Instance.ApplyAll();
         }
 
         private void DrawTitle()
