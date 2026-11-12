@@ -11,10 +11,17 @@ This is a fork of [jrodrigv/PhysicsRangeExtender](https://github.com/jrodrigv/Ph
 
 - CKAN: download `PhysicsRangeExtender-<version>.ckan` from the
   [latest release](https://github.com/Jvaxx/PhysicsRangeExtender/releases/latest)
-  and open it with *File > Install from .ckan…*, or from the command line:
-  `ckan upgrade -c PhysicsRangeExtender-<version>.ckan` (`ckan install -c …`
-  if PRE is not installed yet). CKAN downloads the zip from the release and
-  replaces an installed 1.21.0.
+  and install it from the command line. CKAN does not upgrade an installed
+  module from a local `.ckan` file ("already up to date"), so remove the
+  installed version first; `PluginData/settings.cfg` is kept:
+
+  ```sh
+  ckan remove PhysicsRangeExtender
+  ckan install -c PhysicsRangeExtender-<version>.ckan
+  ```
+
+  CKAN downloads the zip from the release. In the CKAN window, remove
+  Physics Range Extender, apply, then use *File > Install from .ckan…*.
 - By hand: unzip `PhysicsRangeExtender-<version>.zip` into the KSP folder,
   so that `GameData/PhysicsRangeExtender` is replaced.
 
