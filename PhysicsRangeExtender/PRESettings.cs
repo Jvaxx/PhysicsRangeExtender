@@ -40,8 +40,12 @@ namespace PhysicsRangeExtender
                 settings.TryGetValue("DebugLog", ref debugLog);
                 DebugLog = debugLog;
 
+                // No longer used; kept only so that it is written back unchanged until the file format changes.
+                var camFixMultiplier = 1f;
+                settings.TryGetValue("CamFixMultiplier", ref camFixMultiplier);
+                CamFixMultiplier = camFixMultiplier;
+
                 GlobalRange = int.Parse(settings.GetValue("GlobalRange"));
-                CamFixMultiplier = float.Parse(settings.GetValue("CamFixMultiplier"));
                 ModEnabled = bool.Parse(settings.GetValue("ModEnabled"));
                 TerrainExtenderEnabled = bool.Parse(settings.GetValue("TerrainExtenderEnabled"));
             }

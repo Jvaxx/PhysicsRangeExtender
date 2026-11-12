@@ -12,16 +12,12 @@ namespace PhysicsRangeExtender
         private static VesselRanges.Situation _globalSituation;
         private static bool _unloadDueToReferenceFrameApplied;
 
-        private static readonly float _initialClippingPlane = 0.21f;
         private bool _isSuborbital;
 
         /// <summary>The flight-scene instance, or null outside the flight scene.</summary>
         public static PhysicsRangeExtender Instance { get; private set; }
 
         public List<Vessel> VesselToFreeze { get; set; } = new List<Vessel>();
-
-
-        public double LastFlickeringTime { get; set; }
 
         private void Awake()
         {
@@ -95,9 +91,6 @@ namespace PhysicsRangeExtender
 
             try
             {
-                if (FlightCamera.fetch != null)
-                    FlightCamera.fetch.mainCamera.nearClipPlane = _initialClippingPlane;
-
                 var stock = PhysicsGlobals.Instance != null
                     ? PhysicsGlobals.Instance.VesselRangesDefault
                     : new VesselRanges();
@@ -192,38 +185,8 @@ namespace PhysicsRangeExtender
         private void FixedUpdate()
         {
             if (!PreSettings.ModEnabled) return;
-            UpdateNearClipPlane();
             AvoidReferenceFrameChangeIssues();
             FreezeLandedVesselWhenSwitching();
-        }
-
-        private void UpdateNearClipPlane()
-        {
-            if (FlightGlobals.ActiveVessel == null || FlightCamera.fetch == null) return;
-
-            if (FlightGlobals.VesselsLoaded.Count > 1 &&
-                FlightGlobals.VesselsLoaded.Count(TerrainExtender.SortaLanded) >= 1)
-            {
-                var distanceMultiplier =
-                    _initialClippingPlane *
-                    (FlightGlobals.ActiveVessel.transform.position.sqrMagnitude / (4000f * 4000f)) *
-                    PreSettings.CamFixMultiplier;
-
-                FlightCamera.fetch.mainCamera.nearClipPlane = Mathf.Clamp(distanceMultiplier, _initialClippingPlane,
-                    _initialClippingPlane * 50f);
-
-                if (Time.time - LastFlickeringTime > 60)
-                {
-                    ScreenMessages.PostScreenMessage(
-                        "[PhysicsRangeExtender] Flickering correction is active, near camera plane is adapting.", 3f,
-                        ScreenMessageStyle.UPPER_CENTER);
-                    LastFlickeringTime = Time.time;
-                }
-            }
-            else
-            {
-                FlightCamera.fetch.mainCamera.nearClipPlane = _initialClippingPlane;
-            }
         }
 
         private void FreezeLandedVesselWhenSwitching()
@@ -313,7 +276,6 @@ namespace PhysicsRangeExtender
         public static void UpdateRanges(bool updatingFromUi = false)
         {
             Log.Info("Updating ranges");
-            FloatingOrigin.fetch.threshold = Mathf.Pow(PreSettings.GlobalRange * 1000 * 1.20f, 2);
 
             if (updatingFromUi) TerrainExtender.UpdateSphere();
 
