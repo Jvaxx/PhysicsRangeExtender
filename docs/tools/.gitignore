@@ -1,0 +1,6 @@
+# Downloaded standalone ilspycmd executable
+/.ilspycmd/
+
+# Isolated UnityPy Python environment and bytecode
+/.unitypy-venv/
+__pycache__/

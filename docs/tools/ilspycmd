@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+tools_dir=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
+binary="$tools_dir/.ilspycmd/ilspycmd"
+if [[ ! -x "$binary" ]]; then
+    echo "ilspycmd is not installed. Run: $tools_dir/install-ilspycmd" >&2
+    exit 1
+fi
+exec "$binary" --disable-updatecheck "$@"

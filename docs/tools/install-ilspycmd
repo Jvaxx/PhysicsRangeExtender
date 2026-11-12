@@ -1,0 +1,21 @@
+#!/usr/bin/env bash
+# Install the standalone Linux x64 build from the official NuGet feed.
+set -euo pipefail
+
+if [[ $(uname -s) != Linux || $(uname -m) != x86_64 ]]; then
+    echo 'This installer supports Linux x64 only.' >&2
+    exit 1
+fi
+
+version=11.2.0.10050
+tools_dir=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
+work=$(mktemp -d)
+trap 'rm -rf -- "$work"' EXIT
+
+curl --fail --location --retry 3 --connect-timeout 15 --max-time 180 \
+    --output "$work/ilspycmd.nupkg" \
+    "https://api.nuget.org/v3-flatcontainer/ilspycmd.linux-x64/$version/ilspycmd.linux-x64.$version.nupkg"
+unzip -q "$work/ilspycmd.nupkg" 'tools/any/linux-x64/ilspycmd' -d "$work"
+mkdir -p -- "$tools_dir/.ilspycmd"
+install -m 755 "$work/tools/any/linux-x64/ilspycmd" "$tools_dir/.ilspycmd/ilspycmd"
+"$tools_dir/ilspycmd" --version

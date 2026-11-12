@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+# Install UnityPy into an isolated repo-local Python environment using uv.
+set -euo pipefail
+
+tools_dir=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
+venv="$tools_dir/.unitypy-venv"
+if ! command -v uv >/dev/null 2>&1; then
+    echo 'This installer requires uv: https://docs.astral.sh/uv/getting-started/installation/' >&2
+    exit 1
+fi
+
+# Python 3.13 has compatible wheels for UnityPy's native dependencies.
+if [[ ! -x "$venv/bin/python" ]]; then
+    uv venv --python 3.13 "$venv"
+fi
+uv pip install --python "$venv/bin/python" 'UnityPy==1.25.4'
+"$tools_dir/unitypy-python" -c 'import UnityPy; print("UnityPy:", UnityPy.__version__)'

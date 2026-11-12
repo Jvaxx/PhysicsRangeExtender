@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+# Python with UnityPy available; accepts normal Python arguments and scripts.
+set -euo pipefail
+
+tools_dir=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
+python="$tools_dir/.unitypy-venv/bin/python"
+if [[ ! -x "$python" ]]; then
+    echo "UnityPy is not installed. Run: $tools_dir/install-unitypy" >&2
+    exit 1
+fi
+exec "$python" "$@"
