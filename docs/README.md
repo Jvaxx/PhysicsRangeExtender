@@ -26,8 +26,9 @@ Written 2026-11-12, against commit `2b83a71` (branch
   D6); the step 4 check table was not reported item by item. Step 5's
   review ran on 2026-11-12 and its fixes are in (see `plan.md`, step 5);
   they build but are not flown. Next: fly the step 4 table plus the four
-  checks added under step 5, then step 6. The findings below describe the
-  code before these steps.
+  checks added under step 5. The user chose to go on as if they pass.
+  Step 6 (settings file in `PluginData`) is done, builds, not flown.
+  Next is step 7. The findings below describe the code before these steps.
 - Remotes: `origin` is the user's own GitHub repo, `upstream` is
   jrodrigv/PhysicsRangeExtender (push disabled).
 - The source builds cleanly (no warnings) with `./build.sh`.
@@ -65,7 +66,8 @@ Written 2026-11-12, against commit `2b83a71` (branch
 
 `./build.sh` from the repo root (`./build.sh install` also copies the DLL
 into `$KSP_DIR`, default `~/Games/KSP-kOS`). The csproj is unusable here, see
-B8 in `analysis.md`. The script runs this, from `PhysicsRangeExtender/`:
+B8 in `analysis.md`. The script runs the equivalent of this, from
+`PhysicsRangeExtender/`:
 
 ```sh
 M=~/Games/KSP-kOS/KSP_x64_Data/Managed
@@ -77,8 +79,7 @@ csc -nologo -nostdlib -noconfig -target:library -optimize+ \
     UnityEngine.AssetBundleModule UnityEngine.ImageConversionModule \
     UnityEngine.TextCoreModule UnityEngine.UIElementsModule \
     mscorlib System System.Core; do echo -r:$M/$d.dll; done) \
-  Gui.cs PhysicsRangeExtender.cs PRESettings.cs PRExtensions.cs \
-  TerrainExtender.cs Properties/AssemblyInfo.cs
+  -warn:4 *.cs Properties/AssemblyInfo.cs
 ```
 
 ## Reading stock KSP code

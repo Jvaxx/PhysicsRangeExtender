@@ -374,6 +374,20 @@ User checks added to the step 4 table:
 6. Remove `settings.cfg` from `Distribution/` and from the csproj
    `<None>` list. Defaults live in code.
 
+**Done 2026-11-12, not flown.** Notes on the code:
+
+- Paths from `KSPUtil.ApplicationRootPath`; `ConfigNode.Load` returns null
+  for a missing file and `Save` throws on I/O errors, both handled.
+- Out-of-range numbers are clamped (physics ranges to 0.2 km to
+  `GlobalRange`), NaN and infinity rejected; each bad value falls back to
+  its own default with a warning. One `Settings: …` line logs the result.
+- `CamFixMultiplier`, `TerrainExtenderEnabled` and the public
+  `SettingsConfigUrl` are gone (no installed mod reads them; changelog in
+  step 8). `ModEnabled` now defaults to true when there is no file.
+- The old file stays in `GameData`, where ModuleManager still sees it, but
+  it is never written again, so the cache stays valid. A CKAN upgrade may
+  delete it before the first start; the settings are then the defaults.
+
 User check: delete the new file, start KSP: values come from the old file;
 change the range in the GUI, restart: ModuleManager does not rebuild its
 cache (no "cache invalid" in the ModuleManager log) and the value is kept.
