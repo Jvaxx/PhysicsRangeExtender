@@ -3,29 +3,33 @@ using System.Globalization;
 using KSP.UI.Screens;
 using UnityEngine;
 
-// ReSharper disable NotAccessedField.Local
-
 namespace PhysicsRangeExtender
 {
     [KSPAddon(KSPAddon.Startup.Flight, false)]
     public class Gui : MonoBehaviour
     {
-        private const float WindowWidth = 250;
-        private const float DraggableHeight = 40;
-        private const float LeftIndent = 12;
-        private const float ContentTop = 20;
+        private const float WindowWidth = 270;
+        private const float FieldWidth = 60;
+        private const string InputLockId = "PRE_GUI";
+
         public static Gui Fetch;
         public static bool GuiEnabled;
-        private ApplicationLauncherButton button = null;
-        private readonly float _incrButtonWidth = 26;
-        private readonly float contentWidth = WindowWidth - 2 * LeftIndent;
-        private readonly float entryHeight = 20;
-        
-        private bool _gameUiToggle;
-        private string _guiGlobalRangeForVessels = String.Empty;
 
-        private float _windowHeight = 250;
+        private ApplicationLauncherButton button = null;
+
+        private bool _gameUiToggle;
         private Rect _windowRect;
+        private bool _inputLocked;
+
+        private string _globalRangeText = string.Empty;
+        private string _spaceRangeText = string.Empty;
+        private string _landedRangeText = string.Empty;
+        private string _error = string.Empty;
+
+        private GUIStyle _noteStyle;
+        private GUIStyle _errorStyle;
+
+        private static readonly CultureInfo Invariant = CultureInfo.InvariantCulture;
 
         private void Awake()
         {
@@ -37,16 +41,17 @@ namespace PhysicsRangeExtender
 
         private void Start()
         {
-            _windowRect = new Rect(Screen.width - WindowWidth - 40, 100, WindowWidth, _windowHeight);
+            _windowRect = new Rect(Screen.width - WindowWidth - 40, 100, WindowWidth, 0);
             AddToolbarButton();
             GameEvents.onHideUI.Add(GameUiDisable);
             GameEvents.onShowUI.Add(GameUiEnable);
             _gameUiToggle = true;
-            _guiGlobalRangeForVessels = PreSettings.GlobalRange.ToString();
+            ResetFields();
         }
 
         private void OnDestroy()
         {
+            SetInputLock(false);
             GameEvents.onShowUI.Remove(GameUiEnable);
             GameEvents.onHideUI.Remove(GameUiDisable);
             ApplicationLauncher.Instance.RemoveModApplication(this.button);
@@ -57,99 +62,143 @@ namespace PhysicsRangeExtender
         private void OnGUI()
         {
             if (!PreSettings.ConfigLoaded) return;
-            if (GuiEnabled && _gameUiToggle)
-                _windowRect = GUI.Window(320, _windowRect, GuiWindow, "");
+
+            var visible = GuiEnabled && _gameUiToggle;
+            if (visible)
+            {
+                if (_noteStyle == null) CreateStyles();
+
+                // Height 0: GUILayout grows the window to fit, so it also shrinks when content goes away.
+                _windowRect.height = 0;
+                _windowRect = GUILayout.Window(GetInstanceID(), _windowRect, GuiWindow, "Physics Range Extender",
+                    GUILayout.Width(WindowWidth));
+            }
+
+            // Keep clicks and typed digits (action groups) from reaching the game behind the window.
+            if (Event.current.type == EventType.Repaint)
+                SetInputLock(visible && _windowRect.Contains(Event.current.mousePosition));
         }
 
         private void GuiWindow(int windowId)
         {
-            GUI.DragWindow(new Rect(0, 0, WindowWidth, DraggableHeight));
-            float line = 0;
-           
-
-            DrawTitle();
-            line++;
             if (PreSettings.ModEnabled)
             {
-                DrawGlobalVesselRange(line);
-                line++;
-                DrawSaveButton(line);
-                line++;
-            }
-            DisableMod(line);
+                _globalRangeText = Field("Load range (km)", _globalRangeText);
+                _spaceRangeText = Field("Physics range in space (km)", _spaceRangeText);
+                _landedRangeText = Field("Physics range landed (km)", _landedRangeText);
+                GUILayout.Label("Flying vessels run physics within the load range.", _noteStyle);
 
+                if (_error.Length > 0) GUILayout.Label(_error, _errorStyle);
 
-            _windowHeight = ContentTop + line * entryHeight + entryHeight + entryHeight;
-            _windowRect.height = _windowHeight;
-        }
+                var waiting = PhysicsRangeExtender.Instance != null
+                    ? PhysicsRangeExtender.Instance.VesselsWaitingForGround
+                    : 0;
+                if (waiting > 0)
+                    GUILayout.Label("Landed vessels waiting for ground: " + waiting, _noteStyle);
 
-        private void DisableMod(float line)
-        {
-            var saveRect = new Rect(LeftIndent, ContentTop + line * entryHeight, contentWidth, entryHeight);
-
-
-            if (PreSettings.ModEnabled)
-            {
-                if (GUI.Button(saveRect, "Disable Mod"))
-                    PRExtensions.SetModEnabled(false);
+                GUILayout.BeginHorizontal();
+                if (GUILayout.Button("Apply")) Apply();
+                if (GUILayout.Button("Disable Mod")) PRExtensions.SetModEnabled(false);
+                GUILayout.EndHorizontal();
             }
             else
             {
-                if (GUI.Button(saveRect, "Enable Mod"))
+                if (GUILayout.Button("Enable Mod"))
+                {
+                    ResetFields();
                     PRExtensions.SetModEnabled(true);
+                }
             }
+
+            GUI.DragWindow();
         }
 
-
-        private void DrawGlobalVesselRange(float line)
+        private static string Field(string label, string text)
         {
-            var leftLabel = new GUIStyle
-            {
-                alignment = TextAnchor.UpperLeft,
-                normal = {textColor = Color.white}
-            };
-
-            GUI.Label(new Rect(LeftIndent, ContentTop + line * entryHeight, 60, entryHeight), "Global range:",
-                leftLabel);
-            float textFieldWidth = 42;
-            var fwdFieldRect = new Rect(LeftIndent + contentWidth - textFieldWidth - 3 * _incrButtonWidth,
-                  ContentTop + line * entryHeight, textFieldWidth, entryHeight);
-            _guiGlobalRangeForVessels = GUI.TextField(fwdFieldRect, _guiGlobalRangeForVessels);
-          
+            GUILayout.BeginHorizontal();
+            GUILayout.Label(label);
+            GUILayout.FlexibleSpace();
+            text = GUILayout.TextField(text, GUILayout.Width(FieldWidth));
+            GUILayout.EndHorizontal();
+            return text;
         }
 
-        private void DrawSaveButton(float line)
-        {
-            var saveRect = new Rect(LeftIndent, ContentTop + line * entryHeight, contentWidth / 2, entryHeight);
-            if (GUI.Button(saveRect, "Apply new range"))
-                Apply();
-        }
-
+        /// <summary>
+        ///     Validates the three fields and, if all are valid, saves them and applies them to the scene. If one is
+        ///     invalid nothing changes and the window shows the valid interval.
+        /// </summary>
         public void Apply()
         {
-            if (int.TryParse(_guiGlobalRangeForVessels, out var parseGlobalRange))
+            _error = string.Empty;
+
+            if (!int.TryParse(_globalRangeText.Trim(), NumberStyles.Integer, Invariant, out var global) ||
+                global < PreSettings.MinGlobalRange || global > PreSettings.MaxGlobalRange)
             {
-                PreSettings.GlobalRange = parseGlobalRange;
-                _guiGlobalRangeForVessels = PreSettings.GlobalRange.ToString();
+                _error = "Load range: a whole number from " + PreSettings.MinGlobalRange + " to " +
+                         PreSettings.MaxGlobalRange + ".";
+                return;
             }
+
+            if (!TryParseRange(_spaceRangeText, global, out var space))
+            {
+                _error = "Physics range in space: " + Interval(global) + ".";
+                return;
+            }
+
+            if (!TryParseRange(_landedRangeText, global, out var landed))
+            {
+                _error = "Physics range landed: " + Interval(global) + ".";
+                return;
+            }
+
+            PreSettings.GlobalRange = global;
+            PreSettings.SpacePhysicsRange = space;
+            PreSettings.LandedPhysicsRange = landed;
+            ResetFields();
 
             PreSettings.SaveConfig();
             if (PhysicsRangeExtender.Instance != null) PhysicsRangeExtender.Instance.ApplyAll();
         }
 
-        private void DrawTitle()
+        private static bool TryParseRange(string text, int global, out float value)
         {
-            var centerLabel = new GUIStyle
+            // Accept a decimal comma too.
+            return float.TryParse(text.Trim().Replace(',', '.'), NumberStyles.Float, Invariant, out value) &&
+                   value >= PreSettings.MinPhysicsRange && value <= global;
+        }
+
+        private static string Interval(int global)
+        {
+            return "from " + PreSettings.MinPhysicsRange.ToString(Invariant) + " to the load range (" + global + ")";
+        }
+
+        private void ResetFields()
+        {
+            _globalRangeText = PreSettings.GlobalRange.ToString(Invariant);
+            _spaceRangeText = PreSettings.SpacePhysicsRange.ToString(Invariant);
+            _landedRangeText = PreSettings.LandedPhysicsRange.ToString(Invariant);
+            _error = string.Empty;
+        }
+
+        private void CreateStyles()
+        {
+            _noteStyle = new GUIStyle(GUI.skin.label) { fontSize = 11, wordWrap = true };
+            _errorStyle = new GUIStyle(GUI.skin.label)
             {
-                alignment = TextAnchor.UpperCenter,
-                normal = {textColor = Color.white}
+                wordWrap = true,
+                normal = { textColor = new Color(1f, 0.6f, 0.2f) }
             };
-            var titleStyle = new GUIStyle(centerLabel)
-            {
-                fontSize = 10,
-                alignment = TextAnchor.MiddleCenter
-            };
-            GUI.Label(new Rect(0, 0, WindowWidth, 20), "Physics Range Extender", titleStyle);
+        }
+
+        private void SetInputLock(bool locked)
+        {
+            if (locked == _inputLocked) return;
+
+            if (locked)
+                InputLockManager.SetControlLock(ControlTypes.ALLBUTCAMERAS, InputLockId);
+            else
+                InputLockManager.RemoveControlLock(InputLockId);
+            _inputLocked = locked;
         }
 
         private void AddToolbarButton()

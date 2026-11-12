@@ -25,7 +25,7 @@ namespace PhysicsRangeExtender
         public int VesselsWaitingForGround => _guard?.WaitingForGround ?? 0;
 
         private VesselRanges Profile =>
-            _profile ?? (_profile = RangeProfile.Build(PreSettings.GlobalRange, PreSettings.LandedPhysicsRange));
+            _profile ?? (_profile = RangeProfile.FromSettings());
 
         private void Awake()
         {
@@ -88,9 +88,9 @@ namespace PhysicsRangeExtender
         /// <summary>Rebuilds the range profile from the settings and gives it to every vessel.</summary>
         private void ApplyRanges()
         {
-            _profile = RangeProfile.Build(PreSettings.GlobalRange, PreSettings.LandedPhysicsRange);
-            Log.Info("Applying ranges: " + PreSettings.GlobalRange + " km, landed physics " +
-                     _profile.landed.unpack / 1000f + " km");
+            _profile = RangeProfile.FromSettings();
+            Log.Info("Applying ranges: load " + PreSettings.GlobalRange + " km, physics in space " +
+                     _profile.orbit.unpack / 1000f + " km, landed " + _profile.landed.unpack / 1000f + " km");
 
             var vessels = FlightGlobals.Vessels;
             for (var i = 0; i < vessels.Count; i++) ApplyTo(vessels[i]);

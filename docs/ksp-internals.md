@@ -44,6 +44,12 @@ marked **confirm**.
   range of its `BestSituation` from the active vessel. A non-landed vessel
   whose altitude is below `terrainAltitude` "crashed through terrain" and
   explodes. So a vessel coming down where there is no collider is lost.
+  `CheckKill` runs from `VesselPrecalculate.MainPhysics` for packed vessels
+  too, so a packed vessel descending on an airless body also explodes at
+  the surface.
+- `Vessel.updateSituation` runs from `Vessel.LateUpdate` every frame for
+  every vessel, packed or not: a sub-orbital vessel becomes FLYING as soon
+  as its static pressure is above 0, before `CheckKill`'s 1 kPa.
 
 ## Unpacking a landed vessel *(C#)*
 

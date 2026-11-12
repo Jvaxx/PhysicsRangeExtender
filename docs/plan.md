@@ -16,6 +16,7 @@ This plan is meant to be executed in a fresh session, one step at a time.
 | D3 | Use cases to serve: kOS booster landing; seeing and switching to far vessels; rendezvous of two vessels with kOS running on both. | user |
 | D4 | Remove every terrain (PQS) write and every `StartUpSphere()` call. They do not create ground under far vessels (see `ksp-internals.md`, "PQS"), and they cost about 2 s per call. | my proposal, approved by the user |
 | D5 | Remove the near-clip "flickering correction". Proven to do nothing in external view and to override stock's IVA value. | my proposal, follows from the analysis |
+| D6 | Add a separate physics range for sub-orbital, orbiting and escaping vessels (`SpacePhysicsRange`, default 20 km), both physics ranges editable in the GUI. Flying keeps the full range: stock `Vessel.CheckKill` destroys a packed vessel in more than 1 kPa of atmosphere beyond its pack range. | user, 2026-11-12, after far unpacked vessels shook in flight |
 
 D2's condition was "only if kOS CPUs stay fully loaded". Checked in
 `~/Projects/KOS-Improved/src/kOS/Module/kOSProcessor.cs:931-946`: the CPU
@@ -319,6 +320,7 @@ should start from a core that is known to work.
    bad value does not zero the rest.
 3. Values: `GlobalRange` (int km, clamp 3 to 2000, default 100),
    `LandedPhysicsRange` (float km, clamp 0.2 to `GlobalRange`, default 5),
+   `SpacePhysicsRange` (float km, clamp 0.2 to `GlobalRange`, default 20),
    `ModEnabled` (default true), `DebugLog` (default false). Stop writing
    `CamFixMultiplier` and `TerrainExtenderEnabled`.
 4. `SaveConfig` builds the node from scratch (works when the file or node is
@@ -356,6 +358,11 @@ cache (no "cache invalid" in the ModuleManager log) and the value is kept.
 
 User check: type `12` in the range field during flight: action groups 1 and
 2 do not fire; window follows the toolbar button state across scene changes.
+
+**Partly done early (D6):** items 3, 4 (three fields: load range, physics
+range in space, physics range landed; all-or-nothing validation), and 5
+(styles cached, `GUILayout` window with `GetInstanceID()`). Still to do:
+items 1 and 2.
 
 ### Step 8. Version and packaging (B6, B7, B8)
 

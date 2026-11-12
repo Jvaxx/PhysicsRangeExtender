@@ -7,6 +7,17 @@ namespace PhysicsRangeExtender
     public class PreSettings : MonoBehaviour
     {
         public static string SettingsConfigUrl = "GameData/PhysicsRangeExtender/settings.cfg";
+
+        public const int MinGlobalRange = 3;
+        public const int MaxGlobalRange = 2000;
+        public const float MinPhysicsRange = 0.2f;
+        public const float DefaultLandedPhysicsRange = 5f;
+        public const float DefaultSpacePhysicsRange = 20f;
+
+        /// <summary>
+        ///     Distance in km within which every vessel loads. Flying vessels also run physics (unpack) within
+        ///     it: stock destroys a packed vessel flying in atmosphere beyond its pack range.
+        /// </summary>
         public static int GlobalRange { get; set; }
 
         /// <summary>
@@ -15,7 +26,12 @@ namespace PhysicsRangeExtender
         /// </summary>
         public static float LandedPhysicsRange { get; set; } = DefaultLandedPhysicsRange;
 
-        public const float DefaultLandedPhysicsRange = 5f;
+        /// <summary>
+        ///     Distance in km within which sub-orbital, orbiting and escaping vessels run physics. They still
+        ///     load within <see cref="GlobalRange" />, packed. Physics far from the active vessel runs at low
+        ///     floating-point precision, which makes vessels shake.
+        /// </summary>
+        public static float SpacePhysicsRange { get; set; } = DefaultSpacePhysicsRange;
 
         public static float CamFixMultiplier { get; set; }
 
@@ -57,6 +73,10 @@ namespace PhysicsRangeExtender
                 settings.TryGetValue("LandedPhysicsRange", ref landedPhysicsRange);
                 LandedPhysicsRange = landedPhysicsRange;
 
+                var spacePhysicsRange = DefaultSpacePhysicsRange;
+                settings.TryGetValue("SpacePhysicsRange", ref spacePhysicsRange);
+                SpacePhysicsRange = spacePhysicsRange;
+
                 GlobalRange = int.Parse(settings.GetValue("GlobalRange"));
                 ModEnabled = bool.Parse(settings.GetValue("ModEnabled"));
                 TerrainExtenderEnabled = bool.Parse(settings.GetValue("TerrainExtenderEnabled"));
@@ -81,6 +101,7 @@ namespace PhysicsRangeExtender
                 settings.SetValue("ModEnabled", ModEnabled);
                 settings.SetValue("TerrainExtenderEnabled", TerrainExtenderEnabled);
                 settings.SetValue("LandedPhysicsRange", LandedPhysicsRange, true);
+                settings.SetValue("SpacePhysicsRange", SpacePhysicsRange, true);
                 settings.SetValue("DebugLog", DebugLog, true);
                 fileNode.Save(SettingsConfigUrl);
             }
