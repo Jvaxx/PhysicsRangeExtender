@@ -447,6 +447,19 @@ lock. The input-lock check from step 5 covers item 3.
 7. Update `docs/analysis.md`: mark each finding fixed, removed or still
    open, with the commit.
 
+**Done 2026-11-12, released as 1.22.0** on the user's fork
+(`Jvaxx/PhysicsRangeExtender`, tag `1.22.0`, `master` fast-forwarded). The
+user chose to treat steps 7 and 9 as flown. Decisions: the `.version` file
+points to the fork; `LocalDev/*.txt` and the Windows post-build script are
+removed, the csproj and sln are kept. KSP range 1.12.3 to 1.12.5.
+
+CKAN: `./build.sh release` writes the zip and a `.ckan` file (same
+identifier as upstream, `PhysicsRangeExtender`, so CKAN treats it as an
+upgrade of 1.21.0). Both are attached to the GitHub release; CKAN installs
+the `.ckan` with `ckan upgrade -c` or *File > Install from .ckan*. Getting
+the fork into CKAN's public index needs a change to the existing
+`PhysicsRangeExtender.netkan` in KSP-CKAN/NetKAN (not done).
+
 ### Step 9. Optional feature: ground under a far descending vessel
 
 Not a bug fix. Only after steps 0 to 8 are flown and accepted.

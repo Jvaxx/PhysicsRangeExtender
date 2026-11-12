@@ -1,3 +1,61 @@
+= v1.22.0
+Rework for KSP 1.12.3 to 1.12.5. The settings move to a new file; see the
+last points.
+
+Ranges
+- Three ranges instead of one. The load range (default 100 km) applies to
+  every vessel; flying and sub-orbital vessels also run physics within it.
+  Orbiting and escaping vessels run physics within the "physics range in
+  orbit" (default 20 km), landed, splashed and pre-launch vessels within
+  the "physics range landed" (default 5 km). Beyond these they stay loaded
+  and packed: a kOS CPU keeps running, but the vessel cannot move.
+- Ranges are given to each vessel when it is created, loaded or unpacked,
+  instead of to every vessel on every event.
+- Disabling the mod gives every vessel the stock ranges from Physics.cfg.
+
+Landed vessels
+- A landed vessel stays packed until there is a ground collider under it,
+  and stock seats it on the ground when it unpacks. A landed vessel whose
+  ground goes away (the active vessel moved away) is packed.
+- Switching to a far landed vessel waits for its ground before unpacking.
+- Landed vessels are packed when the reference frame turns inertial.
+- A vessel that lands far away keeps running physics until it is at rest.
+- Removed: the terrain extender (terrain restarts, about 2 s each), the
+  vessel freeze and the forced vessel switching. They also overwrote the
+  No Crash Damage and Unbreakable Joints cheats every frame.
+- Experimental, off by default: TerrainUnderDescendingVessels builds
+  collider terrain under a far vessel coming down to land while the active
+  vessel is above 20 km.
+
+Fixes
+- No exception at scene start around the Sun or Jool.
+- Every event handler respects "Disable Mod"; null checks in handlers.
+- Removed the near-clip "flickering correction" (it overrode stock's IVA
+  value) and the floating-origin write (no effect since KSP 1.x).
+- Fixed a leak of the onVesselSituationChange subscription.
+
+GUI
+- Fields for the three ranges, checked before applying; the window shows
+  the valid interval. Typing in a field no longer fires action groups.
+- The toolbar button is shown in flight and map view only, and each flight
+  starts with the window closed.
+
+Settings
+- Settings now live in PhysicsRangeExtender/PluginData/settings.cfg, so
+  saving them no longer invalidates ModuleManager's cache. The old
+  settings.cfg is read once if the new file does not exist. Defaults are
+  in code; the mod no longer ships a settings file.
+- New values: LandedPhysicsRange, SpacePhysicsRange, DebugLog,
+  TerrainUnderDescendingVessels. Removed: CamFixMultiplier,
+  TerrainExtenderEnabled.
+
+For other mods
+- Added [KSPAssembly("PhysicsRangeExtender", 1, 22)].
+- PRExtensions.PreOn / PreOff are kept and now take effect at once.
+- Removed public members: PhysicsRangeExtender.UpdateRanges,
+  RestoreStockRanges, VesselToFreeze, the TerrainExtender class, and
+  PreSettings.CamFixMultiplier, TerrainExtenderEnabled, SettingsConfigUrl.
+
 = v1.21.0
 - Recompiled for KSP 1.12.2
 

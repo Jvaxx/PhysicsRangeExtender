@@ -4,6 +4,39 @@ Commit `2b83a71`, KSP 1.12.5.3190. File paths are relative to
 `PhysicsRangeExtender/`. Stock behaviour quoted here is documented in
 [ksp-internals.md](ksp-internals.md).
 
+## Status in 1.22.0
+
+The findings below describe the 1.21.0 code. Where each one went (commits
+on branch `rework-1.12.5`, released as 1.22.0):
+
+| Finding | Status | Commit |
+|---------|--------|--------|
+| A1 cheats overwritten | removed with the terrain extender | `31c0383` |
+| A2 frozen vessels never released | removed; guard rule 1 replaces it | `31c0383` |
+| A3 dead floating-origin write | removed | `b6c5076`, `31c0383` |
+| A4 zero `InitialPosition` | removed | `31c0383` |
+| A5 focus switching | removed | `31c0383` |
+| A6 state machine details | removed | `31c0383` |
+| A7 exception around the Sun or Jool | fixed, then the call removed | `0648791`, `31c0383` |
+| A8 terrain restarts | removed (no PQS writes left) | `31c0383` |
+| A9 inertial-frame holes | fixed (guard rule 1) | `31c0383` |
+| B1 enable / disable | fixed | `0648791` |
+| B2 near-clip hack | removed | `b6c5076` |
+| B3 per-event cost | fixed (per vessel) | `df62167` |
+| B4 settings file | fixed (`PluginData`, validation, migration) | `ac83271` |
+| B5 GUI | fixed | `64f315a`, `5c70d49`, `f324e59` |
+| B6 `PRExtensions` not compiled | fixed | `0e880e0`, `0648791` |
+| B7 stale DLL | fixed (rebuilt for the release) | 1.22.0 release commit |
+| B8 build setup | `build.sh` (build, install, release); csproj kept, Windows post-build script and `LocalDev` removed | `0e880e0`, 1.22.0 release commit |
+| B9 nulls in handlers | fixed | `0648791` |
+| B10 one range for all | fixed (load, orbit and landed ranges) | `df62167`, `64f315a`, `5c70d49` |
+| Section 4 cleanup | mostly gone with the deleted code | |
+
+Not covered by a finding but changed too: ground checks for switched-to and
+unpacked landed vessels (`5c70d49`), sub-orbital at full range (`5c70d49`),
+experimental terrain target for descending vessels (`a93b21e`, off by
+default).
+
 How sure each finding is:
 
 - **Proven**: follows from PRE's source alone, or from PRE's source plus stock
