@@ -15,28 +15,105 @@ namespace PhysicsRangeExtender
         private static readonly float _initialClippingPlane = 0.21f;
         private bool _isSuborbital;
 
+        /// <summary>The flight-scene instance, or null outside the flight scene.</summary>
+        public static PhysicsRangeExtender Instance { get; private set; }
+
         public List<Vessel> VesselToFreeze { get; set; } = new List<Vessel>();
 
 
         public double LastFlickeringTime { get; set; }
 
+        private void Awake()
+        {
+            Instance = this;
+        }
+
         private void Start()
         {
-            if (!PreSettings.ConfigLoaded) return;
-            if (!PreSettings.ModEnabled) return;
-
-            TerrainExtender.UpdateSphere();
-            UpdateRanges();
-
+            // Subscribe whatever ModEnabled is: the mod can be enabled later in this scene.
+            // Every handler checks ModEnabled itself.
             GameEvents.onVesselCreate.Add(ApplyPhysRange);
             GameEvents.onVesselLoaded.Add(ApplyPhysRangeOnLoad);
             GameEvents.onVesselSwitching.Add(ApplyPhysRange);
             GameEvents.onVesselGoOffRails.Add(ApplyPhysRange);
             GameEvents.onVesselSituationChange.Add(SituationChangeFixes);
+
+            if (PreSettings.ModEnabled) ApplyAll();
+        }
+
+        private void OnDestroy()
+        {
+            GameEvents.onVesselCreate.Remove(ApplyPhysRange);
+            GameEvents.onVesselLoaded.Remove(ApplyPhysRangeOnLoad);
+            GameEvents.onVesselSwitching.Remove(ApplyPhysRange);
+            GameEvents.onVesselGoOffRails.Remove(ApplyPhysRange);
+            GameEvents.onVesselSituationChange.Remove(SituationChangeFixes);
+
+            if (Instance == this) Instance = null;
+        }
+
+        /// <summary>
+        ///     Turns the mod on or off for the rest of this scene and saves the setting. Called by the GUI
+        ///     and by <see cref="PRExtensions" />.
+        /// </summary>
+        public void SetEnabled(bool enabled)
+        {
+            if (PreSettings.ModEnabled == enabled) return;
+
+            Log.Info(enabled ? "Enabling" : "Disabling");
+            PreSettings.ModEnabled = enabled;
+            if (enabled)
+                ApplyAll();
+            else
+                RestoreAll();
+            PreSettings.SaveConfig();
+        }
+
+        /// <summary>Applies the mod's settings to the current scene. Only call while the mod is enabled.</summary>
+        private void ApplyAll()
+        {
+            try
+            {
+                TerrainExtender.UpdateSphere();
+            }
+            catch (Exception e)
+            {
+                Log.Error("Failed to update the terrain sphere: " + e);
+            }
+
+            UpdateRanges();
+        }
+
+        /// <summary>Gives every vessel stock ranges back and drops what the mod holds.</summary>
+        private void RestoreAll()
+        {
+            if (VesselToFreeze.Count > 0)
+            {
+                VesselToFreeze.Clear();
+                TerrainExtender.DeactivateNoCrashDamage();
+            }
+
+            try
+            {
+                if (FlightCamera.fetch != null)
+                    FlightCamera.fetch.mainCamera.nearClipPlane = _initialClippingPlane;
+
+                var stock = PhysicsGlobals.Instance != null
+                    ? PhysicsGlobals.Instance.VesselRangesDefault
+                    : new VesselRanges();
+                var vesselsCount = FlightGlobals.Vessels.Count;
+                for (var i = 0; i < vesselsCount; i++)
+                    FlightGlobals.Vessels[i].vesselRanges = new VesselRanges(stock);
+            }
+            catch (Exception e)
+            {
+                Log.Error("Failed to restore stock ranges: " + e);
+            }
         }
 
         private void SituationChangeFixes(GameEvents.HostedFromToAction<Vessel, Vessel.Situations> data)
         {
+            if (!PreSettings.ModEnabled) return;
             RefreshPqsWhenApproaching(data);
         }
 
@@ -44,6 +121,7 @@ namespace PhysicsRangeExtender
         private void RefreshPqsWhenApproaching(GameEvents.HostedFromToAction<Vessel, Vessel.Situations> data)
         {
             var curVessel = data.host;
+            if (curVessel == null || curVessel.mainBody == null) return;
             if (!curVessel.mainBody.isHomeWorld || !curVessel.isActiveVessel) return;
 
             if (data.from == Vessel.Situations.FLYING && data.to == Vessel.Situations.SUB_ORBITAL)
@@ -53,31 +131,25 @@ namespace PhysicsRangeExtender
             else if (_isSuborbital && data.to == Vessel.Situations.FLYING)
             {
                 _isSuborbital = false;
-                Debug.Log("[PhysicsRangeExtender]: Calling StartUpSphere() to prevent missing PQ tiles");
-                curVessel.mainBody.pqsController.StartUpSphere();
+                var pqs = curVessel.mainBody.pqsController;
+                if (pqs == null) return;
+                Log.Info("Calling StartUpSphere() to prevent missing PQ tiles");
+                pqs.StartUpSphere();
             }
         }
 
         private void ApplyPhysRangeOnLoad(Vessel data)
         {
+            if (!PreSettings.ModEnabled) return;
             NewVesselIsLoaded(data);
             ApplyRangesToVessels();
-        }
-
-        private void OnDestroy()
-        {
-            // No ModEnabled check: the mod can be toggled after Start() subscribed.
-            GameEvents.onVesselCreate.Remove(ApplyPhysRange);
-            GameEvents.onVesselLoaded.Remove(ApplyPhysRangeOnLoad);
-            GameEvents.onVesselSwitching.Remove(ApplyPhysRange);
-            GameEvents.onVesselGoOffRails.Remove(ApplyPhysRange);
-            GameEvents.onVesselSituationChange.Remove(SituationChangeFixes);
         }
 
 
         private void NewVesselIsLoaded(Vessel vessel)
         {
-            if (vessel != null && !vessel.isActiveVessel && vessel.Landed && vessel.vesselType != VesselType.Debris && Vector3.Distance(vessel.CoM, FlightGlobals.ActiveVessel.CoM) > 2500)
+            var active = FlightGlobals.ActiveVessel;
+            if (vessel != null && active != null && !vessel.isActiveVessel && vessel.Landed && vessel.vesselType != VesselType.Debris && Vector3.Distance(vessel.CoM, active.CoM) > 2500)
                 if (TerrainExtender.VesselsLandedToLoad.All(x => x.Vessel != vessel))
                     TerrainExtender.VesselsLandedToLoad.Add(new TerrainExtender.VesselLandedState
                     {
@@ -85,18 +157,22 @@ namespace PhysicsRangeExtender
                         InitialAltitude = vessel.altitude,
                         InitialPosition = vessel.GetWorldPos3D(),
                         LandedState = TerrainExtender.LandedVesselsStates.NotFocused
-                    }); ;
+                    });
         }
 
 
         private void ApplyPhysRange(Vessel data0, Vessel data1)
         {
+            if (!PreSettings.ModEnabled) return;
             CheckIfFreezeIsNeeded(data0, data1);
             ApplyRangesToVessels();
         }
 
         private void CheckIfFreezeIsNeeded(Vessel from, Vessel to)
         {
+            // Stock passes from == null on the first activation of a scene.
+            if (from == null || to == null) return;
+
             if (from.Landed && to.situation >= Vessel.Situations.SUB_ORBITAL)
             {
                 TerrainExtender.ActivateNoCrashDamage();
@@ -108,11 +184,12 @@ namespace PhysicsRangeExtender
 
         private void ApplyPhysRange(Vessel data)
         {
+            if (!PreSettings.ModEnabled) return;
             ApplyRangesToVessels();
         }
 
 
-        private void Update()
+        private void FixedUpdate()
         {
             if (!PreSettings.ModEnabled) return;
             UpdateNearClipPlane();
@@ -122,6 +199,8 @@ namespace PhysicsRangeExtender
 
         private void UpdateNearClipPlane()
         {
+            if (FlightGlobals.ActiveVessel == null || FlightCamera.fetch == null) return;
+
             if (FlightGlobals.VesselsLoaded.Count > 1 &&
                 FlightGlobals.VesselsLoaded.Count(TerrainExtender.SortaLanded) >= 1)
             {
@@ -145,24 +224,6 @@ namespace PhysicsRangeExtender
             {
                 FlightCamera.fetch.mainCamera.nearClipPlane = _initialClippingPlane;
             }
-        }
-
-        private void LateUpdate()
-        {
-            if (!PreSettings.ConfigLoaded) return;
-            if (!PreSettings.ModEnabled) return;
-            UpdateNearClipPlane();
-            AvoidReferenceFrameChangeIssues();
-            FreezeLandedVesselWhenSwitching();
-        }
-
-        private void FixedUpdate()
-        {
-            if (!PreSettings.ConfigLoaded) return;
-            if (!PreSettings.ModEnabled) return;
-            UpdateNearClipPlane();
-            AvoidReferenceFrameChangeIssues();
-            FreezeLandedVesselWhenSwitching();
         }
 
         private void FreezeLandedVesselWhenSwitching()
@@ -251,7 +312,7 @@ namespace PhysicsRangeExtender
 
         public static void UpdateRanges(bool updatingFromUi = false)
         {
-            Debug.Log("[PhysicsRangeExtender]:  Updating ranges");
+            Log.Info("Updating ranges");
             FloatingOrigin.fetch.threshold = Mathf.Pow(PreSettings.GlobalRange * 1000 * 1.20f, 2);
 
             if (updatingFromUi) TerrainExtender.UpdateSphere();
@@ -286,7 +347,7 @@ namespace PhysicsRangeExtender
                 {
                     // check to avoid landed vessels to be destroyed when the active vessel is sub-orbital
                     if (FlightGlobals.Vessels[i].LandedOrSplashed && !ShouldLandedVesselsBeLoaded()) continue;
-                    // 
+                    //
                     if (VesselOrbitingWhileUpdatingRangeFromUi(updatingFromUi, FlightGlobals.Vessels[i])) continue;
 
                     FlightGlobals.Vessels[i].vesselRanges = new VesselRanges(_baseRanges);
@@ -294,7 +355,7 @@ namespace PhysicsRangeExtender
             }
             catch (Exception e)
             {
-                Debug.Log("[PhysicsRangeExtender]: Failed to Load Physics Distance -" + e);
+                Log.Error("Failed to apply ranges: " + e);
             }
         }
 
@@ -308,21 +369,6 @@ namespace PhysicsRangeExtender
         private static bool VesselOrbitingWhileUpdatingRangeFromUi(bool updatingFromUi, Vessel vessel)
         {
             return !vessel.isActiveVessel && updatingFromUi && !vessel.LandedOrSplashed;
-        }
-
-        public static void RestoreStockRanges()
-        {
-            try
-            {
-                FlightCamera.fetch.mainCamera.nearClipPlane = _initialClippingPlane;
-                var vesselsCount = FlightGlobals.Vessels.Count;
-
-                for (var i = 0; i < vesselsCount; i++) FlightGlobals.Vessels[i].vesselRanges = new VesselRanges();
-            }
-            catch (Exception e)
-            {
-                Debug.Log("[PhysicsRangeExtender]: Failed to Load Physics Distance -" + e);
-            }
         }
     }
 }

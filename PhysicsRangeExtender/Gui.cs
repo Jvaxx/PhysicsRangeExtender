@@ -95,20 +95,12 @@ namespace PhysicsRangeExtender
             if (PreSettings.ModEnabled)
             {
                 if (GUI.Button(saveRect, "Disable Mod"))
-                {
-                    PreSettings.ModEnabled = false;
-                    PhysicsRangeExtender.RestoreStockRanges();
-                    PreSettings.SaveConfig();
-                }
+                    PRExtensions.SetModEnabled(false);
             }
             else
             {
                 if (GUI.Button(saveRect, "Enable Mod"))
-                {
-                    PreSettings.ModEnabled = true;
-                    Apply();
-                    PreSettings.SaveConfig();
-                }
+                    PRExtensions.SetModEnabled(true);
             }
         }
 
@@ -204,13 +196,13 @@ namespace PhysicsRangeExtender
         private void EnableGui()
         {
             GuiEnabled = true;
-            Debug.Log("[PhysicsRangeExtender]: Showing PRE GUI");
+            Log.Debug("Showing GUI");
         }
 
         private void DisableGui()
         {
             GuiEnabled = false;
-            Debug.Log("[PhysicsRangeExtender]: Hiding PRE GUI");
+            Log.Debug("Hiding GUI");
         }
 
         private void Dummy()

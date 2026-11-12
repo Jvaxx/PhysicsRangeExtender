@@ -15,6 +15,9 @@ namespace PhysicsRangeExtender
         public static bool ModEnabled { get; set; }
         public static bool TerrainExtenderEnabled { get; set; }
 
+        /// <summary>Write every decision of the mod to KSP.log (see <see cref="Log.Debug" />).</summary>
+        public static bool DebugLog { get; set; }
+
         void Awake()
         {
             LoadConfig();
@@ -25,12 +28,18 @@ namespace PhysicsRangeExtender
         {
             try
             {
-                Debug.Log("[PhysicsRangeExtender]: Loading settings.cfg ==");
+                Log.Info("Loading settings.cfg");
 
                 ConfigNode fileNode = ConfigNode.Load(SettingsConfigUrl);
                 if (!fileNode.HasNode("PreSettings")) return;
 
                 ConfigNode settings = fileNode.GetNode("PreSettings");
+
+                // Optional, read first so that a bad value below cannot hide it.
+                var debugLog = false;
+                settings.TryGetValue("DebugLog", ref debugLog);
+                DebugLog = debugLog;
+
                 GlobalRange = int.Parse(settings.GetValue("GlobalRange"));
                 CamFixMultiplier = float.Parse(settings.GetValue("CamFixMultiplier"));
                 ModEnabled = bool.Parse(settings.GetValue("ModEnabled"));
@@ -38,7 +47,7 @@ namespace PhysicsRangeExtender
             }
             catch (Exception ex)
             {
-                Debug.Log("[PhysicsRangeExtender]: Failed to load settings config:" + ex.Message);
+                Log.Error("Failed to load settings config: " + ex.Message);
             }
         }
 
@@ -46,7 +55,7 @@ namespace PhysicsRangeExtender
         {
             try
             {
-                Debug.Log("[PhysicsRangeExtender]: Saving settings.cfg ==");
+                Log.Info("Saving settings.cfg");
                 ConfigNode fileNode = ConfigNode.Load(SettingsConfigUrl);
                 if (!fileNode.HasNode("PreSettings")) return;
                 ConfigNode settings = fileNode.GetNode("PreSettings");
@@ -55,11 +64,12 @@ namespace PhysicsRangeExtender
                 settings.SetValue("CamFixMultiplier", CamFixMultiplier);
                 settings.SetValue("ModEnabled", ModEnabled);
                 settings.SetValue("TerrainExtenderEnabled", TerrainExtenderEnabled);
+                settings.SetValue("DebugLog", DebugLog, true);
                 fileNode.Save(SettingsConfigUrl);
             }
             catch (Exception ex)
             {
-                Debug.Log("[PhysicsRangeExtender]: Failed to save settings config:" + ex.Message); throw;
+                Log.Error("Failed to save settings config: " + ex.Message); throw;
             }
         }
 

@@ -27,7 +27,9 @@ namespace PhysicsRangeExtender
 
         public static void UpdateSphere()
         {
-            var pqs = FlightGlobals.currentMainBody.pqsController;
+            // The Sun and Jool have no terrain.
+            var pqs = FlightGlobals.currentMainBody?.pqsController;
+            if (pqs == null) return;
 
             pqs.detailAltitudeMax = Mathf.Max(PreSettings.GlobalRange * 1000f, 100000);
             pqs.visRadAltitudeMax = Mathf.Max(PreSettings.GlobalRange * 1000f, 100000);

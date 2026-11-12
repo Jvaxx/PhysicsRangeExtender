@@ -1,23 +1,17 @@
-﻿using System.Collections.Generic;
-using System;
-using UniLinq;
-using UnityEngine;
-
-namespace PhysicsRangeExtender
+﻿namespace PhysicsRangeExtender
 {
+    /// <summary>Lets other mods turn PRE off and back on.</summary>
     public static class PRExtensions
     {
         public static bool _wasEnabled = false;
 
+        /// <summary>Turns PRE back on, only if an earlier <see cref="PreOff" /> turned it off.</summary>
         public static void PreOn(string _modName)
         {
             if (!PreSettings.ModEnabled && _wasEnabled)
             {
-                Debug.Log("[Physic Range Extender] === Being turned on by " + _modName);
-
-                PreSettings.ModEnabled = true;
-                Gui.Fetch.Apply();
-                PreSettings.SaveConfig();
+                Log.Info("Being turned on by " + _modName);
+                SetModEnabled(true);
             }
         }
 
@@ -26,9 +20,25 @@ namespace PhysicsRangeExtender
             if (PreSettings.ModEnabled)
             {
                 _wasEnabled = true;
-                Debug.Log("[Physic Range Extender] === Being turned off by " + _modName);
-                PreSettings.ModEnabled = false;
-                PhysicsRangeExtender.RestoreStockRanges();
+                Log.Info("Being turned off by " + _modName);
+                SetModEnabled(false);
+            }
+        }
+
+        /// <summary>
+        ///     Enables or disables the mod in the flight scene, or, outside it, only changes and saves the
+        ///     setting (the next flight scene reads it).
+        /// </summary>
+        internal static void SetModEnabled(bool enabled)
+        {
+            var instance = PhysicsRangeExtender.Instance;
+            if (instance != null)
+            {
+                instance.SetEnabled(enabled);
+            }
+            else if (PreSettings.ModEnabled != enabled)
+            {
+                PreSettings.ModEnabled = enabled;
                 PreSettings.SaveConfig();
             }
         }
