@@ -1,6 +1,6 @@
 # PRE analysis notes
 
-Written 2026-11-12, against commit `2b83a71` (branch
+Written 2026-11-12, against commit `e9aaa75` (branch
 `fix-situation-change-leak` = upstream master 1.21.0 + the
 `onVesselSituationChange` leak fix) and KSP 1.12.5.3190.
 

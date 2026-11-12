@@ -1,6 +1,6 @@
 # Fix plan
 
-Written 2026-11-12 for commit `2b83a71`, KSP 1.12.5.3190. Read
+Written 2026-11-12 for commit `e9aaa75`, KSP 1.12.5.3190. Read
 [analysis.md](analysis.md) (what is wrong) and
 [ksp-internals.md](ksp-internals.md) (what stock really does) first. Finding
 numbers (A1, B4…) refer to `analysis.md`.
@@ -309,7 +309,7 @@ Stop and run `/code-review` on the branch diff (steps 1 to 4), fix findings,
 and have the user fly the step 4 table. Steps 6 to 8 are mechanical; they
 should start from a core that is known to work.
 
-**Review run 2026-11-12** (`/code-review xhigh 0e880e0..HEAD`, 14
+**Review run 2026-11-12** (`/code-review xhigh 4444d18..HEAD`, 14
 findings, the stock ones checked against the decompile). Fixed, builds
 without warnings, not flown:
 

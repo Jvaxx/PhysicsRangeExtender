@@ -1,6 +1,6 @@
 # Physics Range Extender: code analysis
 
-Commit `2b83a71`, KSP 1.12.5.3190. File paths are relative to
+Commit `e9aaa75`, KSP 1.12.5.3190. File paths are relative to
 `PhysicsRangeExtender/`. Stock behaviour quoted here is documented in
 [ksp-internals.md](ksp-internals.md).
 
@@ -11,30 +11,30 @@ on branch `rework-1.12.5`, released as 1.22.0):
 
 | Finding | Status | Commit |
 |---------|--------|--------|
-| A1 cheats overwritten | removed with the terrain extender | `31c0383` |
-| A2 frozen vessels never released | removed; guard rule 1 replaces it | `31c0383` |
-| A3 dead floating-origin write | removed | `b6c5076`, `31c0383` |
-| A4 zero `InitialPosition` | removed | `31c0383` |
-| A5 focus switching | removed | `31c0383` |
-| A6 state machine details | removed | `31c0383` |
-| A7 exception around the Sun or Jool | fixed, then the call removed | `0648791`, `31c0383` |
-| A8 terrain restarts | removed (no PQS writes left) | `31c0383` |
-| A9 inertial-frame holes | fixed (guard rule 1) | `31c0383` |
-| B1 enable / disable | fixed | `0648791` |
-| B2 near-clip hack | removed | `b6c5076` |
-| B3 per-event cost | fixed (per vessel) | `df62167` |
-| B4 settings file | fixed (`PluginData`, validation, migration) | `ac83271` |
-| B5 GUI | fixed | `64f315a`, `5c70d49`, `f324e59` |
-| B6 `PRExtensions` not compiled | fixed | `0e880e0`, `0648791` |
+| A1 cheats overwritten | removed with the terrain extender | `e06d605` |
+| A2 frozen vessels never released | removed; guard rule 1 replaces it | `e06d605` |
+| A3 dead floating-origin write | removed | `2a7f508`, `e06d605` |
+| A4 zero `InitialPosition` | removed | `e06d605` |
+| A5 focus switching | removed | `e06d605` |
+| A6 state machine details | removed | `e06d605` |
+| A7 exception around the Sun or Jool | fixed, then the call removed | `3c580e0`, `e06d605` |
+| A8 terrain restarts | removed (no PQS writes left) | `e06d605` |
+| A9 inertial-frame holes | fixed (guard rule 1) | `e06d605` |
+| B1 enable / disable | fixed | `3c580e0` |
+| B2 near-clip hack | removed | `2a7f508` |
+| B3 per-event cost | fixed (per vessel) | `5274969` |
+| B4 settings file | fixed (`PluginData`, validation, migration) | `8399a03` |
+| B5 GUI | fixed | `3e8c38c`, `88c4ec8`, `209b0f3` |
+| B6 `PRExtensions` not compiled | fixed | `4444d18`, `3c580e0` |
 | B7 stale DLL | fixed (rebuilt for the release) | 1.22.0 release commit |
-| B8 build setup | `build.sh` (build, install, release); csproj kept, Windows post-build script and `LocalDev` removed | `0e880e0`, 1.22.0 release commit |
-| B9 nulls in handlers | fixed | `0648791` |
-| B10 one range for all | fixed (load, orbit and landed ranges) | `df62167`, `64f315a`, `5c70d49` |
+| B8 build setup | `build.sh` (build, install, release); csproj kept, Windows post-build script and `LocalDev` removed | `4444d18`, 1.22.0 release commit |
+| B9 nulls in handlers | fixed | `3c580e0` |
+| B10 one range for all | fixed (load, orbit and landed ranges) | `5274969`, `3e8c38c`, `88c4ec8` |
 | Section 4 cleanup | mostly gone with the deleted code | |
 
 Not covered by a finding but changed too: ground checks for switched-to and
-unpacked landed vessels (`5c70d49`), sub-orbital at full range (`5c70d49`),
-experimental terrain target for descending vessels (`a93b21e`, off by
+unpacked landed vessels (`88c4ec8`), sub-orbital at full range (`88c4ec8`),
+experimental terrain target for descending vessels (`1a5fa9a`, off by
 default).
 
 How sure each finding is:
@@ -405,7 +405,7 @@ include it, so the branch build has a public API the release lacks.
 
 `Distribution/GameData/PhysicsRangeExtender/Plugins/PhysicsRangeExtender.dll`
 is byte-identical to the official 1.21.0 (md5 `f6d7ec1f…`). It has neither
-the `Gui.OnDestroy` fix (`22d6553`) nor the leak fix (`2b83a71`). Anyone
+the `Gui.OnDestroy` fix (`22d6553`) nor the leak fix (`e9aaa75`). Anyone
 packaging `Distribution/` ships the old bugs. The `.version` file and
 `AssemblyVersion` still say 1.21.0.
 
