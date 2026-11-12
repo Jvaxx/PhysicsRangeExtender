@@ -19,9 +19,13 @@ Written 2026-11-12, against commit `2b83a71` (branch
 - Branch `rework-1.12.5` holds these notes and steps 0 to 4 of `plan.md`,
   one commit per step: lifecycle fixes, near-clip and origin code removed,
   separate landed physics range, and `LandedVesselGuard` in place of the
-  terrain extender and freeze logic. Builds without warnings; **not flown
-  yet**. Next is step 5 (review pass and the step 4 flights). The
-  findings below describe the code before these steps.
+  terrain extender and freeze logic. A fifth commit adds the space physics
+  range and the three-field GUI (decision D6 in `plan.md`). Builds without
+  warnings. The user flew the result on 2026-11-12 and reported it works
+  (an earlier flight showed far unpacked vessels shaking, which led to
+  D6); the step 4 check table was not reported item by item. Next is
+  step 5: `/code-review` of the branch diff from `0e880e0`, in a fresh
+  session. The findings below describe the code before these steps.
 - Remotes: `origin` is the user's own GitHub repo, `upstream` is
   jrodrigv/PhysicsRangeExtender (push disabled).
 - The source builds cleanly (no warnings) with `./build.sh`.

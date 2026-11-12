@@ -77,7 +77,9 @@ in one guard tick at 2 Hz.
 ### Step 0. Preparation (no behaviour change)
 
 **Done 2026-11-12** (branch created, `build.sh`, csproj, docs committed and
-pushed). Steps 1 to 4 are done too (one local commit each); next is step 5.
+pushed). Steps 1 to 4 are done too (one local commit each), plus D6 (space
+physics range and GUI fields, one commit). The user flew it and reported it
+works. Next is step 5.
 
 1. Create the branch.
 2. Add `build.sh` at the repo root:
