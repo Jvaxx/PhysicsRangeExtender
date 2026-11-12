@@ -93,6 +93,8 @@
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="RangeProfile.cs" />
     <Compile Include="LandedVesselGuard.cs" />
+    <Compile Include="DescentTerrain.cs" />
+    <Compile Include="TerrainTargetMod.cs" />
     <Compile Include="PRESettings.cs" />
     <Compile Include="PRExtensions.cs" />
   </ItemGroup>

@@ -17,6 +17,7 @@ namespace PhysicsRangeExtender
         private VesselRanges _profile;
 
         private LandedVesselGuard _guard;
+        private DescentTerrain _terrain;
 
         /// <summary>The flight-scene instance, or null outside the flight scene.</summary>
         public static PhysicsRangeExtender Instance { get; private set; }
@@ -31,6 +32,7 @@ namespace PhysicsRangeExtender
         {
             Instance = this;
             _guard = new LandedVesselGuard(() => Profile);
+            _terrain = new DescentTerrain();
         }
 
         private void Start()
@@ -54,6 +56,7 @@ namespace PhysicsRangeExtender
             GameEvents.onVesselGoOffRails.Remove(OnVesselGoOffRails);
             _guard.Unsubscribe();
             _guard.Clear();
+            ShutdownTerrain("scene ending");
 
             if (Instance == this) Instance = null;
         }
@@ -110,6 +113,7 @@ namespace PhysicsRangeExtender
         /// <summary>Gives every vessel stock ranges back and drops what the guard holds.</summary>
         private void RestoreAll()
         {
+            ShutdownTerrain("mod disabled");
             _guard.Clear();
 
             try
@@ -138,6 +142,30 @@ namespace PhysicsRangeExtender
             catch (Exception e)
             {
                 Log.Error("Landed vessel guard failed: " + e);
+            }
+
+            var active = FlightGlobals.ActiveVessel;
+            if (active == null) return;
+            try
+            {
+                _terrain.Tick(active);
+            }
+            catch (Exception e)
+            {
+                Log.Error("Terrain under descending vessels failed: " + e);
+                ShutdownTerrain("error");
+            }
+        }
+
+        private void ShutdownTerrain(string reason)
+        {
+            try
+            {
+                _terrain.Shutdown(reason);
+            }
+            catch (Exception e)
+            {
+                Log.Error("Failed to give the terrain target back: " + e);
             }
         }
 

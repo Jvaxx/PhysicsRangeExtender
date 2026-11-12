@@ -339,7 +339,8 @@ namespace PhysicsRangeExtender
                    vessel.state != Vessel.State.DEAD && vessel != active;
         }
 
-        private static bool HasGround(Vessel vessel)
+        /// <summary>True if a ray straight down through the vessel hits a terrain or KSC collider (layer 15).</summary>
+        internal static bool HasGround(Vessel vessel)
         {
             Vector3 position = vessel.transform.position;
             Vector3 up = FlightGlobals.getUpAxis(vessel.mainBody, position);

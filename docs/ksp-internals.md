@@ -249,6 +249,54 @@ What decides where detailed terrain exists *(C#)*:
 - `PQSMod_QuadMeshColliders.OnQuadBuilt` adds a collider only to quads with
   `subdivision >= maxLevel - |maxLevelOffset|`.
 
+Moving the target, for step 9 *(C#, read 2026-11-12)*:
+
+- `PQS.UpdateSphere` (the update coroutine, every frame unless
+  `frameTimeDelta > 0`): `Mod_OnPreUpdate()` (every mod's `OnPreUpdate`, in
+  array order), then `UpdateVisual()`, then, if active and `target` is set,
+  `UpdateQuads()` and `Mod_OnUpdateFinished()`. A mod's `OnPreUpdate` is the
+  last point before the target is read. An exception there ends the
+  coroutine (terrain stops updating).
+- `SetupMods` collects `PQSMod` components from the sphere's **child**
+  GameObjects (recursively), sorts them by `order`, drops disabled ones, and
+  calls `OnSetup` on every mod. It runs at sphere start and reset, and via
+  `ResetModList` when `Mod_OnUpdateFinished` meets a null (destroyed) mod.
+  The result is the private `PQSMod[] mods` with `int modCount`. Kopernicus
+  adds `PQSMod_CelestialBodyTransform` with `order = 10`.
+- `PQS.SetTarget` and `SetSecondaryTarget` also set every child sphere
+  (ocean). `PSystemManager.SpawnBody` sets both target and secondary target
+  to the flight camera; nothing in flight changes the secondary target
+  afterwards. `UpdateVisual` uses `visibleAltitude = max(target altitude,
+  secondary altitude)` for `visibleRadius` (which quads are shown, measured
+  from the target) and stock's sphere (de)activation uses `visibleAltitude`.
+  So moving only `target` keeps those tied to the camera.
+- `UpdateVisual` derives everything else from `target.position`: the
+  relative position, `targetHeight` (target altitude minus the terrain
+  function under it), the collapse factor, and `angularTargetSpeed`, which
+  caps subdivision (`maxLevelAtCurrentTgtSpeed`) when the target moves fast.
+  A jump of the target caps it for one update only. Above
+  `maxDetailDistance * radius` subdivision is disabled.
+- `PQ.UpdateSubdivision` subdivides one level per update (children are not
+  recursed in the same pass), within `maxFrameTime` per update, and
+  collapses a subdivided quad (and destroys the colliders below it) at once
+  when `gcDist > collapseThresholds[level]`.
+- `PQSMod_QuadMeshColliders` takes its minimum level
+  (`maxLevel - |maxLevelOffset|`) in `OnSetup`.
+- `PQS.Update` rebuilds the whole sphere ("PQS …: Restarted") if
+  `isThinking` is still set, i.e. `UpdateQuads` threw.
+- `PQSMod_CelestialBodyTransform.forceRebuildOnTargetChange` is written
+  (stock `Reset`, Kopernicus) but never read.
+- `PQSMod_CelestialBodyTransform.OnPreUpdate` resets the sphere when
+  `FlightGlobals.currentMainBody` is another body.
+- Kopernicus patches `PQS.UpdateVisual` (skips the terrain height lookup
+  while the target is above `maxDetailDistance * radius`), `UpdateQuadsInit`,
+  `StartSphere` and `ResetAndWait`. Parallax Continued places scatter from
+  `FlightGlobals.ActiveVessel`'s position and patches PQS quad destruction
+  and `PQ.SetVisible` / `SetInvisible`. Neither touches the target.
+- `Vessel.UpdatePosVel`: `radarAltitude` is `heightFromTerrain` (the
+  vessel's own ray) when that hit something, else `altitude` minus the
+  terrain function (`PQSAltitude()`), or `altitude` over the sea.
+
 What PRE's values therefore do:
 
 - `visRadSeaLevelValue = 200` multiplies `visibleRadius` (which quads are

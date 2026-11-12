@@ -475,6 +475,57 @@ Spike to run before any design:
 4. Decide with the user whether it is worth shipping, behind a setting that
    is off by default.
 
+**Spike implemented 2026-11-12** (at the user's request, before steps 7
+and 8 were committed). Builds, not flown. Off by default:
+`TerrainUnderDescendingVessels = True` in `PluginData/settings.cfg` turns
+it on; there is no GUI field yet. Stock code read first, see
+`ksp-internals.md`, "Moving the target".
+
+How it works:
+
+- `TerrainTargetMod` (a `PQSMod`, `order = int.MaxValue`) on a child
+  GameObject of the active body's sphere. Its `OnPreUpdate` calls
+  `sphere.SetTarget(vessel.transform)` after stock's mod has set the active
+  vessel, and catches its own exceptions. It is put into and taken out of
+  the private `PQS.mods` array by reflection, so no sphere restart and no
+  `OnSetup` of other mods. The secondary target (the flight camera) is left
+  alone, so what is shown and when the sphere switches off still follow
+  the camera.
+- `DescentTerrain`, ticked with the guard (2 Hz):
+  - Start: rotating frame, active vessel not landed and at least 20 km
+    above the ground or sea, the body's sphere active; candidate = loaded,
+    unpacked, non-active vessel on that body, FLYING or SUB_ORBITAL, below
+    5 km above the terrain, descending faster than 1 m/s, not over the sea;
+    the lowest one wins. Landed vessels still running physics are packed
+    first (their terrain is about to go).
+  - Stop: active vessel below 15 km, landed or on another body; the sphere
+    switched off; the vessel gone, packed, active, splashed, back above
+    7 km; landed in the inertial frame; landed and at rest 5 s, or landed
+    for 60 s. Before giving the target back, every landed vessel still
+    running physics is packed (its colliders collapse within one sphere
+    update); the guard holds them as usual.
+- Logged at Info, whatever `DebugLog` is: the body's PQS numbers (once),
+  start and stop with the reason, the seconds until a collider is under the
+  vessel, and sphere-update frame times (mean, worst, count over 50 ms)
+  while targeting and for 5 s after giving the target back.
+
+Not handled, by design for the spike: a vessel still in flight when the
+active vessel comes below 15 km loses its terrain (logged as a warning);
+the active vessel above the body's deactivate altitude (no terrain at all);
+water landings (buoyancy needs no collider).
+
+Flights for the spike (set `DebugLog = True` too):
+
+| Flight | Expect, and what to report |
+|--------|----------------------------|
+| kOS booster lands itself at least 30 km away while you stay on the upper stage above 20 km | `Terrain target moved to …` at 5 km, then `ground collider under … after N s`; the booster lands and stays; then `Terrain target back …` with "landed and at rest". Report N, the frame-time lines, and how the terrain under you looked while targeting (detail lost, holes, popping) |
+| Same, but come down below 15 km before the booster lands | stop line "active vessel is below 15 km", a warning that the booster loses its terrain; your own terrain is back before you land |
+| Same, with Parallax scatter visible near the booster's landing site | frame-time lines: worst ms and count over 50 ms, compared with a flight without the setting |
+| Switch to the booster right after it landed | stop line "it is the active vessel"; it stands where it landed |
+| Load the save near the landed booster later | guard releases it when ground is found; it is not thrown |
+
+Step 4 of this section ("decide with the user") follows these flights.
+
 ## 5. Risks and how the plan handles them
 
 | Risk | Handling |

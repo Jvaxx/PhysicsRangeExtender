@@ -49,6 +49,12 @@ namespace PhysicsRangeExtender
         /// <summary>Write every decision of the mod to KSP.log (see <see cref="Log.Debug" />).</summary>
         public static bool DebugLog { get; set; }
 
+        /// <summary>
+        ///     Experimental: build collider terrain under a far vessel coming down to land while the active
+        ///     vessel is high up (see <see cref="DescentTerrain" />). File only, off by default.
+        /// </summary>
+        public static bool TerrainUnderDescendingVessels { get; set; }
+
         /// <summary>The settings file: <c>GameData/PhysicsRangeExtender/PluginData/settings.cfg</c>.</summary>
         public static string SettingsPath =>
             Path.Combine(ModDirectory, Path.Combine("PluginData", "settings.cfg"));
@@ -97,7 +103,7 @@ namespace PhysicsRangeExtender
             Log.Info("Settings: GlobalRange = " + GlobalRange + ", LandedPhysicsRange = " +
                      LandedPhysicsRange.ToString(Invariant) + ", SpacePhysicsRange = " +
                      SpacePhysicsRange.ToString(Invariant) + ", ModEnabled = " + ModEnabled + ", DebugLog = " +
-                     DebugLog);
+                     DebugLog + ", TerrainUnderDescendingVessels = " + TerrainUnderDescendingVessels);
         }
 
         /// <summary>Writes every setting to <see cref="SettingsPath" />. Logs a failure; never throws.</summary>
@@ -112,6 +118,7 @@ namespace PhysicsRangeExtender
                 settings.AddValue("SpacePhysicsRange", SpacePhysicsRange.ToString(Invariant));
                 settings.AddValue("ModEnabled", ModEnabled.ToString());
                 settings.AddValue("DebugLog", DebugLog.ToString());
+                settings.AddValue("TerrainUnderDescendingVessels", TerrainUnderDescendingVessels.ToString());
 
                 Directory.CreateDirectory(Path.GetDirectoryName(SettingsPath));
                 root.Save(SettingsPath);
@@ -138,6 +145,7 @@ namespace PhysicsRangeExtender
             SpacePhysicsRange = ClampPhysicsRange(ReadFloat(settings, "SpacePhysicsRange", DefaultSpacePhysicsRange));
             ModEnabled = ReadBool(settings, "ModEnabled", true);
             DebugLog = ReadBool(settings, "DebugLog", false);
+            TerrainUnderDescendingVessels = ReadBool(settings, "TerrainUnderDescendingVessels", false);
         }
 
         /// <summary>Clamps a physics range to its valid interval, which depends on <see cref="GlobalRange" />.</summary>

@@ -29,8 +29,9 @@ Written 2026-11-12, against commit `2b83a71` (branch
   checks added under step 5. The user chose to go on as if they pass.
   Step 6 (settings file in `PluginData`) is committed; the user saw the
   migration and the GUI save work. Step 7 (GUI) is done, builds, not
-  flown. Next is step 8. The findings below describe the code before these
-  steps.
+  flown, not committed. Step 9's spike (terrain under a far descending
+  vessel, off by default) is implemented and builds, not flown. Step 8 is
+  still to do. The findings below describe the code before these steps.
 - Remotes: `origin` is the user's own GitHub repo, `upstream` is
   jrodrigv/PhysicsRangeExtender (push disabled).
 - The source builds cleanly (no warnings) with `./build.sh`.
