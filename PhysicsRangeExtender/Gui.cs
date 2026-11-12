@@ -13,10 +13,10 @@ namespace PhysicsRangeExtender
         private const string InputLockId = "PRE_GUI";
         private const string FieldNamePrefix = "PRE_field_";
 
-        public static Gui Fetch;
-        public static bool GuiEnabled;
+        private ApplicationLauncherButton _button;
 
-        private ApplicationLauncherButton button = null;
+        // The window is open. Each flight scene starts with it closed, like its toolbar button.
+        private bool _guiEnabled;
 
         private bool _gameUiToggle;
         private Rect _windowRect;
@@ -35,22 +35,19 @@ namespace PhysicsRangeExtender
 
         private static readonly CultureInfo Invariant = CultureInfo.InvariantCulture;
 
-        private void Awake()
-        {
-            if (Fetch)
-                Destroy(Fetch);
-
-            Fetch = this;
-        }
-
         private void Start()
         {
             _windowRect = new Rect(Screen.width - WindowWidth - 40, 100, WindowWidth, 0);
-            AddToolbarButton();
             GameEvents.onHideUI.Add(GameUiDisable);
             GameEvents.onShowUI.Add(GameUiEnable);
             _gameUiToggle = true;
             ResetFields();
+
+            // The launcher may not exist yet when the flight scene starts: add the button when it is ready,
+            // and drop it when the launcher goes away.
+            GameEvents.onGUIApplicationLauncherReady.Add(AddToolbarButton);
+            GameEvents.onGUIApplicationLauncherUnreadifying.Add(OnLauncherUnreadifying);
+            if (ApplicationLauncher.Ready) AddToolbarButton();
         }
 
         private void OnDestroy()
@@ -58,8 +55,9 @@ namespace PhysicsRangeExtender
             SetInputLock(false);
             GameEvents.onShowUI.Remove(GameUiEnable);
             GameEvents.onHideUI.Remove(GameUiDisable);
-            ApplicationLauncher.Instance.RemoveModApplication(this.button);
-            this.button = null;
+            GameEvents.onGUIApplicationLauncherReady.Remove(AddToolbarButton);
+            GameEvents.onGUIApplicationLauncherUnreadifying.Remove(OnLauncherUnreadifying);
+            RemoveToolbarButton();
         }
 
         // ReSharper disable once InconsistentNaming
@@ -67,7 +65,7 @@ namespace PhysicsRangeExtender
         {
             if (!PreSettings.ConfigLoaded) return;
 
-            var visible = GuiEnabled && _gameUiToggle;
+            var visible = _guiEnabled && _gameUiToggle;
             if (visible)
             {
                 if (_noteStyle == null) CreateStyles();
@@ -220,25 +218,40 @@ namespace PhysicsRangeExtender
 
         private void AddToolbarButton()
         {
-            if (null == this.button)
-            {
-                Texture buttonTexture = GameDatabase.Instance.GetTexture("PhysicsRangeExtender/Textures/icon", false);
-                this.button = ApplicationLauncher.Instance.AddModApplication(
-                        EnableGui, DisableGui, Dummy, Dummy, Dummy, Dummy,
-                        ApplicationLauncher.AppScenes.ALWAYS, buttonTexture
-                    );
-            }
+            if (_button != null || ApplicationLauncher.Instance == null) return;
+
+            var texture = GameDatabase.Instance.GetTexture("PhysicsRangeExtender/Textures/icon", false);
+            _button = ApplicationLauncher.Instance.AddModApplication(
+                EnableGui, DisableGui, Dummy, Dummy, Dummy, Dummy,
+                ApplicationLauncher.AppScenes.FLIGHT | ApplicationLauncher.AppScenes.MAPVIEW, texture);
+
+            // The button is created off; keep the window in step with it.
+            if (_guiEnabled) _button.SetTrue(false);
+        }
+
+        private void RemoveToolbarButton()
+        {
+            if (_button == null) return;
+
+            if (ApplicationLauncher.Instance != null) ApplicationLauncher.Instance.RemoveModApplication(_button);
+            _button = null;
+        }
+
+        private void OnLauncherUnreadifying(GameScenes scene)
+        {
+            RemoveToolbarButton();
         }
 
         private void EnableGui()
         {
-            GuiEnabled = true;
+            _guiEnabled = true;
             Log.Debug("Showing GUI");
         }
 
         private void DisableGui()
         {
-            GuiEnabled = false;
+            _guiEnabled = false;
+            SetInputLock(false);
             Log.Debug("Hiding GUI");
         }
 

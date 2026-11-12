@@ -419,8 +419,14 @@ User check: type `12` in the range field during flight: action groups 1 and
 
 **Partly done early (D6):** items 3, 4 (three fields: load range, physics
 range in space, physics range landed; all-or-nothing validation), and 5
-(styles cached, `GUILayout` window with `GetInstanceID()`). Still to do:
-items 1 and 2.
+(styles cached, `GUILayout` window with `GetInstanceID()`). Items 1 and 2
+**done 2026-11-12, not flown**: the button is added on
+`onGUIApplicationLauncherReady` (or at once if `ApplicationLauncher.Ready`)
+for `FLIGHT | MAPVIEW`, and removed on `onGUIApplicationLauncherUnreadifying`
+(stock fires it on every scene load request) and in `OnDestroy`, with null
+checks (`RemoveModApplication(null)` throws). `GuiEnabled` and the unused
+`Gui.Fetch` are now instance state; hiding the window also drops the input
+lock. The input-lock check from step 5 covers item 3.
 
 ### Step 8. Version and packaging (B6, B7, B8)
 

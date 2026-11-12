@@ -27,8 +27,10 @@ Written 2026-11-12, against commit `2b83a71` (branch
   review ran on 2026-11-12 and its fixes are in (see `plan.md`, step 5);
   they build but are not flown. Next: fly the step 4 table plus the four
   checks added under step 5. The user chose to go on as if they pass.
-  Step 6 (settings file in `PluginData`) is done, builds, not flown.
-  Next is step 7. The findings below describe the code before these steps.
+  Step 6 (settings file in `PluginData`) is committed; the user saw the
+  migration and the GUI save work. Step 7 (GUI) is done, builds, not
+  flown. Next is step 8. The findings below describe the code before these
+  steps.
 - Remotes: `origin` is the user's own GitHub repo, `upstream` is
   jrodrigv/PhysicsRangeExtender (push disabled).
 - The source builds cleanly (no warnings) with `./build.sh`.
