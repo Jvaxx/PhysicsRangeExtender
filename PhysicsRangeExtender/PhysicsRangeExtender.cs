@@ -13,7 +13,7 @@ namespace PhysicsRangeExtender
     {
         private const float GuardTickInterval = 0.5f;
 
-        /// <summary>The ranges given to every vessel; built from the settings by <see cref="ApplyRanges" />.</summary>
+        /// <summary>The ranges given to every vessel; built from the settings by <see cref="ApplyAll" />.</summary>
         private VesselRanges _profile;
 
         private LandedVesselGuard _guard;
@@ -43,7 +43,7 @@ namespace PhysicsRangeExtender
             _guard.Subscribe();
             InvokeRepeating(nameof(GuardTick), GuardTickInterval, GuardTickInterval);
 
-            if (PreSettings.ModEnabled) ApplyAll();
+            ApplyAll();
         }
 
         private void OnDestroy()
@@ -76,20 +76,15 @@ namespace PhysicsRangeExtender
         }
 
         /// <summary>
-        ///     Applies the current settings to the scene: every vessel gets the ranges built from them. Does
-        ///     nothing while the mod is disabled.
+        ///     Applies the current settings to the scene: rebuilds the range profile and gives it to every
+        ///     vessel. Does nothing while the mod is disabled.
         /// </summary>
         public void ApplyAll()
         {
             if (!PreSettings.ModEnabled) return;
-            ApplyRanges();
-        }
 
-        /// <summary>Rebuilds the range profile from the settings and gives it to every vessel.</summary>
-        private void ApplyRanges()
-        {
             _profile = RangeProfile.FromSettings();
-            Log.Info("Applying ranges: load " + PreSettings.GlobalRange + " km, physics in space " +
+            Log.Info("Applying ranges: load " + PreSettings.GlobalRange + " km, physics in orbit " +
                      _profile.orbit.unpack / 1000f + " km, landed " + _profile.landed.unpack / 1000f + " km");
 
             var vessels = FlightGlobals.Vessels;

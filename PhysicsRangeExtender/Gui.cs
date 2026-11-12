@@ -11,6 +11,7 @@ namespace PhysicsRangeExtender
         private const float WindowWidth = 270;
         private const float FieldWidth = 60;
         private const string InputLockId = "PRE_GUI";
+        private const string FieldNamePrefix = "PRE_field_";
 
         public static Gui Fetch;
         public static bool GuiEnabled;
@@ -20,6 +21,9 @@ namespace PhysicsRangeExtender
         private bool _gameUiToggle;
         private Rect _windowRect;
         private bool _inputLocked;
+
+        // One of the window's text fields has the keyboard (as of the last window pass).
+        private bool _typing;
 
         private string _globalRangeText = string.Empty;
         private string _spaceRangeText = string.Empty;
@@ -68,15 +72,25 @@ namespace PhysicsRangeExtender
             {
                 if (_noteStyle == null) CreateStyles();
 
+                // A click outside the window ends typing in its fields, and so releases the input lock.
+                if (_typing && Event.current.type == EventType.MouseDown &&
+                    !_windowRect.Contains(Event.current.mousePosition))
+                    GUI.FocusControl(null);
+
                 // Height 0: GUILayout grows the window to fit, so it also shrinks when content goes away.
                 _windowRect.height = 0;
                 _windowRect = GUILayout.Window(GetInstanceID(), _windowRect, GuiWindow, "Physics Range Extender",
                     GUILayout.Width(WindowWidth));
             }
+            else
+            {
+                _typing = false;
+            }
 
-            // Keep clicks and typed digits (action groups) from reaching the game behind the window.
+            // Keep clicks and typed digits (action groups) from reaching the game behind the window: while the
+            // mouse is over it, and while one of its fields has the keyboard, wherever the mouse is.
             if (Event.current.type == EventType.Repaint)
-                SetInputLock(visible && _windowRect.Contains(Event.current.mousePosition));
+                SetInputLock(visible && (_typing || _windowRect.Contains(Event.current.mousePosition)));
         }
 
         private void GuiWindow(int windowId)
@@ -84,9 +98,9 @@ namespace PhysicsRangeExtender
             if (PreSettings.ModEnabled)
             {
                 _globalRangeText = Field("Load range (km)", _globalRangeText);
-                _spaceRangeText = Field("Physics range in space (km)", _spaceRangeText);
+                _spaceRangeText = Field("Physics range in orbit (km)", _spaceRangeText);
                 _landedRangeText = Field("Physics range landed (km)", _landedRangeText);
-                GUILayout.Label("Flying vessels run physics within the load range.", _noteStyle);
+                GUILayout.Label("Flying and sub-orbital vessels run physics within the load range.", _noteStyle);
 
                 if (_error.Length > 0) GUILayout.Label(_error, _errorStyle);
 
@@ -98,7 +112,7 @@ namespace PhysicsRangeExtender
 
                 GUILayout.BeginHorizontal();
                 if (GUILayout.Button("Apply")) Apply();
-                if (GUILayout.Button("Disable Mod")) PRExtensions.SetModEnabled(false);
+                if (GUILayout.Button("Disable Mod")) PRExtensions.SetByUser(false);
                 GUILayout.EndHorizontal();
             }
             else
@@ -106,10 +120,11 @@ namespace PhysicsRangeExtender
                 if (GUILayout.Button("Enable Mod"))
                 {
                     ResetFields();
-                    PRExtensions.SetModEnabled(true);
+                    PRExtensions.SetByUser(true);
                 }
             }
 
+            _typing = GUI.GetNameOfFocusedControl().StartsWith(FieldNamePrefix, StringComparison.Ordinal);
             GUI.DragWindow();
         }
 
@@ -118,6 +133,7 @@ namespace PhysicsRangeExtender
             GUILayout.BeginHorizontal();
             GUILayout.Label(label);
             GUILayout.FlexibleSpace();
+            GUI.SetNextControlName(FieldNamePrefix + label);
             text = GUILayout.TextField(text, GUILayout.Width(FieldWidth));
             GUILayout.EndHorizontal();
             return text;
@@ -141,7 +157,7 @@ namespace PhysicsRangeExtender
 
             if (!TryParseRange(_spaceRangeText, global, out var space))
             {
-                _error = "Physics range in space: " + Interval(global) + ".";
+                _error = "Physics range in orbit: " + Interval(global) + ".";
                 return;
             }
 
@@ -156,20 +172,21 @@ namespace PhysicsRangeExtender
             PreSettings.LandedPhysicsRange = landed;
             ResetFields();
 
-            PreSettings.SaveConfig();
             if (PhysicsRangeExtender.Instance != null) PhysicsRangeExtender.Instance.ApplyAll();
+            PreSettings.SaveConfig();
         }
 
         private static bool TryParseRange(string text, int global, out float value)
         {
-            // Accept a decimal comma too.
-            return float.TryParse(text.Trim().Replace(',', '.'), NumberStyles.Float, Invariant, out value) &&
+            // No thousands separators and no decimal comma: "1,000" must not become 1.
+            return float.TryParse(text.Trim(), NumberStyles.Float, Invariant, out value) &&
                    value >= PreSettings.MinPhysicsRange && value <= global;
         }
 
         private static string Interval(int global)
         {
-            return "from " + PreSettings.MinPhysicsRange.ToString(Invariant) + " to the load range (" + global + ")";
+            return "from " + PreSettings.MinPhysicsRange.ToString(Invariant) + " to the load range (" + global +
+                   "), with a dot for decimals";
         }
 
         private void ResetFields()

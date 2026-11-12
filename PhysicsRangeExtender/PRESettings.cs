@@ -27,7 +27,7 @@ namespace PhysicsRangeExtender
         public static float LandedPhysicsRange { get; set; } = DefaultLandedPhysicsRange;
 
         /// <summary>
-        ///     Distance in km within which sub-orbital, orbiting and escaping vessels run physics. They still
+        ///     Distance in km within which orbiting and escaping vessels run physics. They still
         ///     load within <see cref="GlobalRange" />, packed. Physics far from the active vessel runs at low
         ///     floating-point precision, which makes vessels shake.
         /// </summary>

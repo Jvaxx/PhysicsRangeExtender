@@ -35,6 +35,16 @@ marked **confirm**.
   - distance > `pack` of its `BestSituation`: `GoOnRails()`
   - distance < `unpack` of its `situation`, packed, no high warp:
     `GoOffRails()`
+- The active vessel is not range-checked: `OrbitPhysicsManager.LateUpdate`
+  calls `activeVessel.GoOffRails()` every frame while it is packed and
+  `holdVesselUnpack` is off. `FlightGlobals.setActiveVessel` packs every
+  vessel (if the target is packed), fires `onVesselSwitching(from, to)`,
+  then calls `HoldVesselUnpack()` (one frame). The physics-hold counter
+  `framesAtStartup` is set in `Vessel.Awake` only, so a vessel loaded long
+  ago unpacks about two frames after a switch. With its saved PQS levels
+  equal to the body's, its ground check is skipped (see below), so a far
+  landed vessel switched to unpacks before any collider exists under it.
+  *(C#, read 2026-11-12)*
 - Distances are `Vector3.Distance` between the two `transform.position`
   (single precision).
 - `Vessel.GoOffRails` returns unless `loaded`. Details in "Unpacking a

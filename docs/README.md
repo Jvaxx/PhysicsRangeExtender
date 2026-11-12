@@ -23,9 +23,11 @@ Written 2026-11-12, against commit `2b83a71` (branch
   range and the three-field GUI (decision D6 in `plan.md`). Builds without
   warnings. The user flew the result on 2026-11-12 and reported it works
   (an earlier flight showed far unpacked vessels shaking, which led to
-  D6); the step 4 check table was not reported item by item. Next is
-  step 5: `/code-review` of the branch diff from `0e880e0`, in a fresh
-  session. The findings below describe the code before these steps.
+  D6); the step 4 check table was not reported item by item. Step 5's
+  review ran on 2026-11-12 and its fixes are in (see `plan.md`, step 5);
+  they build but are not flown. Next: fly the step 4 table plus the four
+  checks added under step 5, then step 6. The findings below describe the
+  code before these steps.
 - Remotes: `origin` is the user's own GitHub repo, `upstream` is
   jrodrigv/PhysicsRangeExtender (push disabled).
 - The source builds cleanly (no warnings) with `./build.sh`.

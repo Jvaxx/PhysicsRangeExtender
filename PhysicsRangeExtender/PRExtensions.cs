@@ -10,6 +10,7 @@
         {
             if (!PreSettings.ModEnabled && _wasEnabled)
             {
+                _wasEnabled = false;
                 Log.Info("Being turned on by " + _modName);
                 SetModEnabled(true);
             }
@@ -23,6 +24,16 @@
                 Log.Info("Being turned off by " + _modName);
                 SetModEnabled(false);
             }
+        }
+
+        /// <summary>
+        ///     The player turned the mod on or off. A later <see cref="PreOn" /> no longer overrides that
+        ///     choice.
+        /// </summary>
+        internal static void SetByUser(bool enabled)
+        {
+            _wasEnabled = false;
+            SetModEnabled(enabled);
         }
 
         /// <summary>

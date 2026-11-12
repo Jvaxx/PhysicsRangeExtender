@@ -16,7 +16,8 @@ This plan is meant to be executed in a fresh session, one step at a time.
 | D3 | Use cases to serve: kOS booster landing; seeing and switching to far vessels; rendezvous of two vessels with kOS running on both. | user |
 | D4 | Remove every terrain (PQS) write and every `StartUpSphere()` call. They do not create ground under far vessels (see `ksp-internals.md`, "PQS"), and they cost about 2 s per call. | my proposal, approved by the user |
 | D5 | Remove the near-clip "flickering correction". Proven to do nothing in external view and to override stock's IVA value. | my proposal, follows from the analysis |
-| D6 | Add a separate physics range for sub-orbital, orbiting and escaping vessels (`SpacePhysicsRange`, default 20 km), both physics ranges editable in the GUI. Flying keeps the full range: stock `Vessel.CheckKill` destroys a packed vessel in more than 1 kPa of atmosphere beyond its pack range. | user, 2026-11-12, after far unpacked vessels shook in flight |
+| D6 | Add a separate physics range for orbiting and escaping vessels (`SpacePhysicsRange`, default 20 km, "Physics range in orbit" in the GUI), both physics ranges editable in the GUI. Flying keeps the full range: stock `Vessel.CheckKill` destroys a packed vessel in more than 1 kPa of atmosphere beyond its pack range. Sub-orbital keeps the full range too (D7). | user, 2026-11-12, after far unpacked vessels shook in flight |
+| D7 | Sub-orbital vessels use the full range like flying ones, so a far kOS booster coasting above the atmosphere, or a lander coming down on an airless body, stays unpacked and under control. Accepted cost: such a vessel may shake while far away, for the length of its arc. | user, 2026-11-12, after the step 5 review |
 
 D2's condition was "only if kOS CPUs stay fully loaded". Checked in
 `~/Projects/KOS-Improved/src/kOS/Module/kOSProcessor.cs:931-946`: the CPU
@@ -307,6 +308,47 @@ User checks (set `DebugLog = True`):
 Stop and run `/code-review` on the branch diff (steps 1 to 4), fix findings,
 and have the user fly the step 4 table. Steps 6 to 8 are mechanical; they
 should start from a core that is known to work.
+
+**Review run 2026-11-12** (`/code-review xhigh 0e880e0..HEAD`, 14
+findings, the stock ones checked against the decompile). Fixed, builds
+without warnings, not flown:
+
+- Switching to a far landed vessel unpacked it with no ground check
+  (stock unpacks the active vessel whatever its ranges, about two frames
+  after the switch). The guard now sets `PQSminLevel = 0` and
+  `skipGroundPositioning = false` on `onVesselSwitching`; stock then waits
+  for a collider and seats it. See `ksp-internals.md`, "Vessel ranges".
+- Rule 2 only looked at packed vessels. An unpacked landed vessel whose
+  terrain collider collapses (active vessel moved away or climbed, larger
+  landed range, small body) fell through. The tick now packs such a vessel
+  when its ray finds nothing; it is then held and seated on release.
+  Up to one tick (0.5 s) of fall is possible before it is packed.
+- GUI: input lock also held while a field has the keyboard (a click
+  outside the window ends typing); Apply applies before saving; no more
+  `,` → `.` rewrite ("1,000" was read as 1).
+- `PRExtensions._wasEnabled` is cleared by `PreOn` and by the GUI buttons,
+  so another mod's `PreOn` cannot undo the player's "Disable Mod".
+- Small cleanups (`ApplyAll` and `ApplyRanges` merged, `Seat` helper).
+
+Left for later steps: unvalidated values from `settings.cfg` and the
+required `TerrainExtenderEnabled` key (step 6), the removed public API
+`UpdateRanges` / `RestoreStockRanges` / `TerrainExtender` (no installed
+mod uses it; changelog in step 8). Not changed: stock seating can put a
+vessel on a roof above it (stock's own behaviour on any PQS level change),
+and rule 2 keeps its own holds rather than relying only on the stock
+flags (avoids a per-frame `GoOffRails` and raycast per waiting vessel).
+The review also found that the space physics range (D6) kept a kOS
+booster above the atmosphere, or a lander on an airless body, packed
+beyond 22 km. Resolved by D7: sub-orbital vessels get the full range.
+
+User checks added to the step 4 table:
+
+| Flight | Expect |
+|--------|--------|
+| Landed vessel 20 to 50 km away (inside the load range), switch to it with `]` | it stays packed a moment, then `ground contact!` in the log; it does not fall through or explode |
+| `LandedPhysicsRange = 20`, rover unpacked next to a base, drive 15 km away | log shows the base packed with "no ground under it" before anything breaks; drive back: it is released and seated |
+| Booster separates above the atmosphere, follow the upper stage until more than 25 km apart | booster stays unpacked while sub-orbital (kOS steering works); it packs only if it reaches orbit |
+| Click a GUI field, move the mouse to the scene, type `12` | the digits go into the field, action groups 1 and 2 do not fire; click the scene: controls work again |
 
 ### Step 6. Settings file (B4)
 

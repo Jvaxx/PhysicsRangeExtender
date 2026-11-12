@@ -12,29 +12,32 @@ namespace PhysicsRangeExtender
         }
 
         /// <summary>
-        ///     Every vessel loads within <paramref name="globalKm" />. Flying vessels also run physics (unpack)
-        ///     within that range. Landed, splashed and pre-launch vessels run physics only within
-        ///     <paramref name="landedKm" />, and sub-orbital, orbiting and escaping vessels only within
+        ///     Every vessel loads within <paramref name="globalKm" />. Flying and sub-orbital vessels also run
+        ///     physics (unpack) within that range. Landed, splashed and pre-launch vessels run physics only within
+        ///     <paramref name="landedKm" />, and orbiting and escaping vessels only within
         ///     <paramref name="spaceKm" />; both are capped at <paramref name="globalKm" />. Beyond them the
         ///     vessels stay loaded and packed.
         /// </summary>
         /// <remarks>
         ///     Flying cannot get a shorter range: stock <c>Vessel.CheckKill</c> destroys a packed vessel in more
-        ///     than 1 kPa of atmosphere when it is beyond the pack range of its situation. A sub-orbital vessel
-        ///     coming down becomes FLYING at the edge of the atmosphere, before that pressure, and gets the full
-        ///     range back.
+        ///     than 1 kPa of atmosphere when it is beyond the pack range of its situation. Sub-orbital keeps the
+        ///     full range so that a far vessel on a ballistic arc stays under its own control: a booster coasting
+        ///     above the atmosphere, or a lander coming down on an airless body, where it never becomes FLYING.
+        ///     The arc is short, so the shaking of far unpacked vessels (the reason for <paramref name="spaceKm" />)
+        ///     does not last.
         /// </remarks>
         public static VesselRanges Build(float globalKm, float landedKm, float spaceKm)
         {
             var r = globalKm * 1000f;
+            var full = new VesselRanges.Situation(r, r * 1.05f, r * 1.10f, r * 0.99f);
             var landed = PhysicsWithin(r, landedKm * 1000f);
             var space = PhysicsWithin(r, spaceKm * 1000f);
 
             // VesselRanges.Situation(load, unload, pack, unpack)
             return new VesselRanges
             {
-                flying = new VesselRanges.Situation(r, r * 1.05f, r * 1.10f, r * 0.99f),
-                subOrbital = space,
+                flying = full,
+                subOrbital = new VesselRanges.Situation(full),
                 orbit = new VesselRanges.Situation(space),
                 escaping = new VesselRanges.Situation(space),
                 landed = landed,

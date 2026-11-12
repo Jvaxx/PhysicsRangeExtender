@@ -16,7 +16,9 @@ namespace PhysicsRangeExtender
     ///             never unpacks it) until a ray finds a ground collider under it. Stock builds colliders only
     ///             within a few km of the active vessel; unpacked without one, the vessel falls through the
     ///             terrain. A vessel that had to wait is also seated on the ground by stock's
-    ///             <c>CheckGroundCollision</c> when it unpacks.
+    ///             <c>CheckGroundCollision</c> when it unpacks. An unpacked landed vessel whose ground goes away
+    ///             is packed and held. A landed vessel being switched to is left to stock's own ground check,
+    ///             which waits for a collider before unpacking it.
     ///         </item>
     ///         <item>
     ///             A vessel that lands farther away than the landed physics range keeps the flying pack range
@@ -60,6 +62,7 @@ namespace PhysicsRangeExtender
             GameEvents.onRotatingFrameTransition.Add(OnRotatingFrameTransition);
             GameEvents.onVesselGoOnRails.Add(OnVesselGoOnRails);
             GameEvents.onVesselSituationChange.Add(OnVesselSituationChange);
+            GameEvents.onVesselSwitching.Add(OnVesselSwitching);
         }
 
         public void Unsubscribe()
@@ -67,6 +70,7 @@ namespace PhysicsRangeExtender
             GameEvents.onRotatingFrameTransition.Remove(OnRotatingFrameTransition);
             GameEvents.onVesselGoOnRails.Remove(OnVesselGoOnRails);
             GameEvents.onVesselSituationChange.Remove(OnVesselSituationChange);
+            GameEvents.onVesselSwitching.Remove(OnVesselSwitching);
         }
 
         /// <summary>
@@ -141,6 +145,21 @@ namespace PhysicsRangeExtender
                 Hold(vessel, "packed, ground not checked yet");
         }
 
+        // Fired after every vessel was packed for the switch, before the active vessel changes. Stock unpacks
+        // the new active vessel two frames later whatever its ranges, and skips its ground check because
+        // its saved terrain levels still match: switched to from far away, it would unpack before terrain
+        // colliders exist under it and fall through. With these two flags stock checks for a collider and
+        // retries every frame until one is there (see ksp-internals.md, "Unpacking a landed vessel").
+        private void OnVesselSwitching(Vessel from, Vessel to)
+        {
+            if (!PreSettings.ModEnabled || to == null) return;
+            if (!to.loaded || !to.packed || !to.Landed || to.Splashed) return;
+
+            if (_held.ContainsKey(to)) Release(to, false, "switching to it");
+            Seat(to);
+            Log.Debug("Switching to " + to.vesselName + ": stock will wait for ground and seat it");
+        }
+
         // Rule 3: a lander keeps the flying pack range until it is at rest.
         private void OnVesselSituationChange(GameEvents.HostedFromToAction<Vessel, Vessel.Situations> data)
         {
@@ -197,6 +216,7 @@ namespace PhysicsRangeExtender
                 {
                     if (_held.ContainsKey(vessel))
                         Release(vessel, false, vessel == active ? "is the active vessel" : "no longer packed and landed");
+                    if (rotating && IsUnpackedLanded(vessel, active)) PackIfNoGround(vessel, active);
                     continue;
                 }
 
@@ -291,10 +311,32 @@ namespace PhysicsRangeExtender
             }
         }
 
+        // An unpacked landed vessel loses its ground when the active vessel moves away and the terrain detail
+        // under it collapses (stock keeps colliders only within a few km of the active vessel, fewer on small
+        // bodies or with the active vessel high up). Pack it before it falls through. It is then held like any
+        // packed landed vessel, and seated when it is released, since it may have sunk before the tick saw it.
+        private void PackIfNoGround(Vessel vessel, Vessel active)
+        {
+            if (vessel.mainBody != active.mainBody || HasGround(vessel)) return;
+
+            var distance = Vector3.Distance(vessel.transform.position, active.transform.position);
+            StopSettling(vessel, "no ground under it");
+            Log.Debug("Packing " + vessel.vesselName + ": no ground under it at " + (distance / 1000f).ToString("0.0") +
+                      " km");
+            vessel.GoOnRails(); // OnVesselGoOnRails holds it.
+            if (_held.ContainsKey(vessel)) _held[vessel] = true;
+        }
+
         private static bool IsHoldable(Vessel vessel)
         {
             return vessel.loaded && vessel.packed && vessel.Landed && !vessel.Splashed &&
                    vessel.state != Vessel.State.DEAD && vessel != FlightGlobals.ActiveVessel;
+        }
+
+        private static bool IsUnpackedLanded(Vessel vessel, Vessel active)
+        {
+            return vessel.loaded && !vessel.packed && vessel.Landed && !vessel.Splashed &&
+                   vessel.state != Vessel.State.DEAD && vessel != active;
         }
 
         private static bool HasGround(Vessel vessel)
@@ -317,19 +359,19 @@ namespace PhysicsRangeExtender
         private void Release(Vessel vessel, bool seat, string reason)
         {
             _held.Remove(vessel);
-            var profile = _profile();
-            vessel.vesselRanges.landed.unpack = profile.landed.unpack;
-            vessel.vesselRanges.prelaunch.unpack = profile.prelaunch.unpack;
-
-            if (seat)
-            {
-                // With PQSminLevel == 0, GoOffRails keeps skipGroundPositioning as set here, runs
-                // CheckGroundCollision, moves the vessel onto the collider, and stays packed if there is none.
-                vessel.PQSminLevel = 0;
-                vessel.skipGroundPositioning = false;
-            }
+            SetUnpack(vessel, _profile().landed.unpack);
+            if (seat) Seat(vessel);
 
             Log.Debug("Releasing " + vessel.vesselName + ": " + reason + (seat ? ", stock will seat it" : ""));
+        }
+
+        // With PQSminLevel == 0, GoOffRails keeps skipGroundPositioning as set here, runs CheckGroundCollision,
+        // moves the vessel onto the collider, and stays packed if there is none. checkLanded writes the body's
+        // levels back once the vessel is down.
+        private static void Seat(Vessel vessel)
+        {
+            vessel.PQSminLevel = 0;
+            vessel.skipGroundPositioning = false;
         }
 
         private void StopSettling(Vessel vessel, string reason)
