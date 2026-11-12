@@ -16,10 +16,12 @@ Written 2026-11-12, against commit `2b83a71` (branch
 
 ## Where things stand
 
-- Branch `rework-1.12.5` holds these notes and step 0 of `plan.md`
-  (`build.sh`, `PRExtensions.cs` added to the csproj). No C# source has
-  changed yet: the DLL it builds has the same IL as the
-  `fix-situation-change-leak` build. Next is step 1.
+- Branch `rework-1.12.5` holds these notes and steps 0 to 4 of `plan.md`,
+  one commit per step: lifecycle fixes, near-clip and origin code removed,
+  separate landed physics range, and `LandedVesselGuard` in place of the
+  terrain extender and freeze logic. Builds without warnings; **not flown
+  yet**. Next is step 5 (review pass and the step 4 flights). The
+  findings below describe the code before these steps.
 - Remotes: `origin` is the user's own GitHub repo, `upstream` is
   jrodrigv/PhysicsRangeExtender (push disabled).
 - The source builds cleanly (no warnings) with `./build.sh`.

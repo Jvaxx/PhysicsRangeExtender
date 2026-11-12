@@ -56,13 +56,24 @@ marked **confirm**.
    non-zero, the situation is not PRELAUNCH, and both equal the body's
    current `pqsController.minLevel` / `maxLevel`, it sets
    `skipGroundPositioning = true`; when they differ it sets it to false.
+   **When `PQSminLevel` or `PQSmaxLevel` is 0, or the vessel is PRELAUNCH,
+   it leaves `skipGroundPositioning` as it is.** A single-part vessel gets
+   `skipGroundPositioning = false` unless `skipGroundPositioningForDroppedPart`.
    Then, unless (`!vesselSpawning && skipGroundPositioning`), it calls
-   `CheckGroundCollision()` and **returns without unpacking if that returns
-   false** (**confirm** the exact nesting, and that `vesselSpawning` is set
-   false on that path);
-4. **returns if `LandedOrSplashed && !FlightGlobals.RefFrameIsRotating`**:
-   stock never unpacks a landed vessel in the inertial frame;
+   `CheckGroundCollision()` and, if that returns false, sets
+   `vesselSpawning = false` and **returns without unpacking**
+   (confirmed in the C# on 2026-11-12);
+4. sets `vesselSpawning = false`, removes the physics hold, calls
+   `precalc.GoOffRails()` (empty in `VesselPrecalculate`), then
+   **returns if `LandedOrSplashed && !FlightGlobals.RefFrameIsRotating`**:
+   stock never unpacks a landed vessel in the inertial frame (confirmed);
 5. otherwise unpacks and fires `onVesselGoOffRails`.
+
+So to make stock seat a landed vessel at its next unpack, set both
+`PQSminLevel = 0` and `skipGroundPositioning = false`: the first stops
+step 3 from setting the second back to true. `checkLanded` writes the body
+levels back once the vessel is unpacked and touching the ground.
+`FlightGlobals.RefFrameIsRotating` is false on a body that does not rotate.
 
 `Vessel.CheckGroundCollision()`: returns true at once if
 `skipGroundPositioning`. Otherwise it raycasts down from above the vessel
@@ -86,8 +97,23 @@ rotation velocity on every **unpacked** part, then fires
 `GameEvents.onRotatingFrameTransition(HostTargetAction<CelestialBody, bool>)`
 (`target` is the new rotating state). It does not pack landed vessels.
 
-`Vessel.GoOnRails()`: returns if already packed; fires `onVesselGoOnRails`;
-packs every part.
+`Vessel.CheckGroundCollision()` moves the vessel 5000 m up before its
+raycast, so the ray does not hit the vessel's own parts, then puts it back.
+
+`Vessel.GoOnRails()`: returns if already packed; fires `onVesselGoOnRails`
+**before** packing (in the handler `packed` is still false); packs every
+part; sets the orbit driver to IDLE for a landed or splashed vessel.
+
+`Vessel.BestSituation` returns `lastSituation` when that is FLYING, else
+`situation`. `updateSituation` sets `lastSituation = situation` right after
+firing `onVesselSituationChange`, so in practice `BestSituation` is the
+current situation: a vessel that lands far away gets the landed pack range
+at its first ground contact.
+
+The KSPCommunityFixes installed in `KSP-kOS` patches none of these methods except a
+postfix on `Vessel.GoOnRails` (`PackedPartsRotation`). No other installed
+mod references `CheckGroundCollision`, `skipGroundPositioning` or
+`onRotatingFrameTransition`.
 
 ## Physics hold and kOS *(C#)*
 

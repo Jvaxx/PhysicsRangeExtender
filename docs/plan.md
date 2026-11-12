@@ -76,7 +76,7 @@ in one guard tick at 2 Hz.
 ### Step 0. Preparation (no behaviour change)
 
 **Done 2026-11-12** (branch created, `build.sh`, csproj, docs committed and
-pushed). Start at step 1.
+pushed). Steps 1 to 4 are done too (one local commit each); next is step 5.
 
 1. Create the branch.
 2. Add `build.sh` at the repo root:
@@ -279,6 +279,25 @@ User checks (set `DebugLog = True`):
 | Flight scene in Jool or solar orbit, second vessel at 10 km | loaded; no exception at scene start (A7 gone) |
 | Any scene load and any re-entry | no `Calling StartUpSphere()` in the log, no 2 s hitch (A8 gone) |
 | Flag planted 3 km away | no focus switch (A5 gone) |
+
+**Done 2026-11-12, not flown yet.** Stock code read and recorded in
+`ksp-internals.md`. Where the code differs from the text above:
+
+- Rule 2 holds by default. Stock checks the unpack range every frame and
+  the guard only twice a second, so a vessel entering its range would be
+  unpacked before the guard looked. Every packed landed vessel is held from
+  the moment it loads or packs (vessel switch, warp, rule 1) until a ray
+  within its pack range finds ground. Out of range or in the inertial
+  frame it stays held, which also spares stock a `GoOffRails` call per
+  frame. The active vessel is released at the next tick.
+- Stock is asked to seat a vessel (`PQSminLevel = 0`,
+  `skipGroundPositioning = false`) only if the guard found no ground under
+  it at least once, not on every release. Both flags are needed: see
+  `ksp-internals.md`.
+- `VesselsWaitingForGround` (held vessels inside their unpack range) is
+  what step 7's GUI line should show; the raw held count includes every far
+  landed vessel.
+- `Log.cs` holds the log helper from step 1.
 
 ### Step 5. Review pass before touching settings and GUI
 
